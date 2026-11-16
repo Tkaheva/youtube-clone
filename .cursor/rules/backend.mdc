@@ -1,0 +1,8 @@
+---
+description: Правила для бэкенда FastAPI
+globs: backend/**/*.py
+---
+- Используй SQLAlchemy 2.0 (Async).
+- Для фоновых задач (например, генерация превью) используй FastAPI BackgroundTasks.
+- Все эндпоинты должны быть асинхронными (async def).
+- Авторизация через JWT (OAuth2PasswordBearer).
