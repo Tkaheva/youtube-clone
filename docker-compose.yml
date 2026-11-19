@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: youtude-postgres
+    environment:
+      POSTGRES_USER: youtude
+      POSTGRES_PASSWORD: youtude
+      POSTGRES_DB: youtude
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youtude -d youtude"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: bitnami/minio:2024
+    container_name: youtude-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  youtude:
+    build: .
+    container_name: youtude-api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://youtude:youtude@youtude-postgres:5432/youtude
+      S3_ENDPOINT: http://youtude-minio:9000
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  miniodata:
