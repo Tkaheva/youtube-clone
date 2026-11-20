@@ -3,6 +3,7 @@ import os
 from typing import AsyncGenerator
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -10,6 +11,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
+from app.db.session import get_async_session
+from app.main import app
 from app.models.base import Base
 
 TEST_DATABASE_URL = os.getenv(
@@ -42,6 +45,19 @@ async def async_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     async with factory() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture
+async def client(async_session):
+    """HTTP-клиент, который использует тестовую сессию БД вместо продакшена."""
+    async def override_get_session():
+        yield async_session
+
+    app.dependency_overrides[get_async_session] = override_get_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(autouse=True)
