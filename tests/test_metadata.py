@@ -2,6 +2,14 @@ from sqlalchemy import UniqueConstraint
 
 from app.models.base import Base
 
+# Импортируем все модели, чтобы они зарегистрировались в Base.metadata
+import app.models.user  # noqa: F401
+import app.models.video  # noqa: F401
+import app.models.comment  # noqa: F401
+import app.models.reaction  # noqa: F401
+import app.models.subscription  # noqa: F401
+import app.models.complaint  # noqa: F401
+
 EXPECTED_TABLES = {
     "users",
     "videos",
