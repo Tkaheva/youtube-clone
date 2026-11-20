@@ -43,6 +43,9 @@ services:
       S3_ENDPOINT: http://youtude-minio:9000
       # Добавлено значение по умолчанию для локальной разработки, чтобы убрать warning
       SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-change-me}
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      S3_BUCKET: videos
     ports:
       - "8003:8000"
     depends_on:
