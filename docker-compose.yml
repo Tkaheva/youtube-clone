@@ -44,7 +44,7 @@ services:
       # Добавлено значение по умолчанию для локальной разработки, чтобы убрать warning
       SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-change-me}
     ports:
-      - "8000:8000"
+      - "8003:8000"
     depends_on:
       postgres:
         condition: service_healthy
