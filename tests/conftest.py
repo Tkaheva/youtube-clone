@@ -42,3 +42,13 @@ async def async_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     async with factory() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture(autouse=True)
+async def clean_tables(test_engine):
+    """Очищает все таблицы после каждого теста, чтобы тесты не влияли друг на друга
+    через общий тестовый экземпляр базы данных."""
+    yield
+    async with test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())

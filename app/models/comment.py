@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy import Boolean, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
 
 from app.models.base import Base
 
@@ -28,5 +28,9 @@ class Comment(Base):
 
     video = relationship("Video", back_populates="comments")
     author = relationship("User", back_populates="comments")
-    parent = relationship("Comment", remote_side=[id], back_populates="replies")
+    @declared_attr
+    def parent(cls):
+        return relationship(
+            "Comment", remote_side=[cls.id], back_populates="replies"
+        )
     replies = relationship("Comment", back_populates="parent")
