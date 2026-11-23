@@ -28,7 +28,7 @@ async def test_upload_video(async_session, client: AsyncClient):
     # Логинимся, чтобы получить JWT
     login_resp = await client.post(
         LOGIN_URL,
-        json={"email": "uploader@example.com", "password": "secret123"},
+        data={"username": "uploader@example.com", "password": "secret123"},
     )
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]

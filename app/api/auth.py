@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +10,7 @@ from app.db.session import get_async_session
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app.models.user import User, UserRole
 from app.schemas.token import Token
-from app.schemas.user import UserCreate, UserLogin, UserResponse
+from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -61,13 +62,17 @@ async def register(
     summary="Вход: вернуть access и refresh JWT токены",
 )
 async def login(
-    user_in: UserLogin,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_async_session),
 ) -> Token:
-    """Проверить учетные данные и вернуть пару JWT токенов."""
-    result = await session.execute(select(User).where(User.email == user_in.email))
+    """Проверить учетные данные и вернуть пару JWT токенов.
+
+    Принимает OAuth2 form-data (username/password), как требует стандарт
+    для Swagger UI кнопки Authorize. В поле username передаётся email.
+    """
+    result = await session.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(user_in.password, user.password_hash):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

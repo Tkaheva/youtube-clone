@@ -86,7 +86,7 @@ async def test_login_success(async_session, client: AsyncClient):
 
     response = await client.post(
         LOGIN_URL,
-        json={"email": "login@example.com", "password": "secret123"},
+        data={"username": "login@example.com", "password": "secret123"},
     )
     assert response.status_code == 200, response.text
     data = response.json()
@@ -108,7 +108,7 @@ async def test_login_wrong_password(async_session, client: AsyncClient):
 
     response = await client.post(
         LOGIN_URL,
-        json={"email": "wrong@example.com", "password": "badpassword"},
+        data={"username": "wrong@example.com", "password": "badpassword"},
     )
     assert response.status_code == 401, response.text
 
@@ -117,6 +117,6 @@ async def test_login_wrong_password(async_session, client: AsyncClient):
 async def test_login_user_not_found(client: AsyncClient):
     response = await client.post(
         LOGIN_URL,
-        json={"email": "nonexistent@example.com", "password": "secret123"},
+        data={"username": "nonexistent@example.com", "password": "secret123"},
     )
     assert response.status_code == 401, response.text
