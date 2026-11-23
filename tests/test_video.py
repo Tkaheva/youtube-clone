@@ -130,3 +130,179 @@ async def test_list_videos(async_session, client: AsyncClient):
     for v in body:
         assert v["visibility"] == "public"
         assert v["author_username"] == "author"
+
+
+async def _login_and_get_token(client: AsyncClient, email: str, password: str = "secret123") -> str:
+    resp = await client.post(LOGIN_URL, data={"username": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return resp.json()["access_token"]
+
+
+async def _create_user_and_video(
+    async_session,
+    email: str,
+    username: str,
+    title: str,
+    status: VideoStatus = VideoStatus.ready,
+    visibility: VideoVisibility = VideoVisibility.public,
+) -> tuple:
+    user = User(
+        email=email,
+        username=username,
+        password_hash=hash_password("secret123"),
+        role=UserRole.user,
+    )
+    async_session.add(user)
+    await async_session.flush()
+
+    video = Video(
+        author_id=user.id,
+        title=title,
+        description="Test video",
+        original_s3_key=f"videos/{user.id}/test.mp4",
+        visibility=visibility,
+        status=status,
+    )
+    async_session.add(video)
+    await async_session.commit()
+    return user, video
+
+
+@pytest.mark.asyncio
+async def test_like_video(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session, "liker@example.com", "liker", "Likeable Video"
+    )
+    token = await _login_and_get_token(client, "liker@example.com")
+
+    resp = await client.post(
+        f"/videos/{video.id}/like",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["type"] == "like"
+    assert body["target_type"] == "video"
+
+    resp = await client.post(
+        f"/videos/{video.id}/like",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 204, resp.text
+
+
+@pytest.mark.asyncio
+async def test_like_video_unauthenticated(client: AsyncClient):
+    resp = await client.post(
+        "/videos/00000000-0000-0000-0000-000000000000/like"
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_like_nonexistent_video(async_session, client: AsyncClient):
+    user = User(
+        email="liker2@example.com",
+        username="liker2",
+        password_hash=hash_password("secret123"),
+        role=UserRole.user,
+    )
+    async_session.add(user)
+    await async_session.commit()
+    token = await _login_and_get_token(client, "liker2@example.com")
+
+    resp = await client.post(
+        "/videos/00000000-0000-0000-0000-000000000000/like",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_create_comment(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session,
+        "commenter@example.com",
+        "commenter",
+        "Commentable Video",
+    )
+    token = await _login_and_get_token(client, "commenter@example.com")
+
+    resp = await client.post(
+        f"/videos/{video.id}/comments",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"content": "Отличное видео!"},
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["content"] == "Отличное видео!"
+    assert body["author_username"] == "commenter"
+    assert str(body["video_id"]) == str(video.id)
+    assert body["parent_id"] is None
+    assert body["is_deleted"] is False
+
+
+@pytest.mark.asyncio
+async def test_create_comment_with_parent(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session,
+        "commenter2@example.com",
+        "commenter2",
+        "Commentable Video 2",
+    )
+    token = await _login_and_get_token(client, "commenter2@example.com")
+
+    from app.models.comment import Comment
+
+    parent = Comment(
+        video_id=video.id,
+        author_id=user.id,
+        content="Родительский комментарий",
+    )
+    async_session.add(parent)
+    await async_session.flush()
+
+    resp = await client.post(
+        f"/videos/{video.id}/comments",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"content": "Ответ на комментарий", "parent_id": str(parent.id)},
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert str(body["parent_id"]) == str(parent.id)
+    assert body["content"] == "Ответ на комментарий"
+
+
+@pytest.mark.asyncio
+async def test_list_comments(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session,
+        "commenter3@example.com",
+        "commenter3",
+        "Commentable Video 3",
+    )
+    token = await _login_and_get_token(client, "commenter3@example.com")
+
+    for i in range(3):
+        await client.post(
+            f"/videos/{video.id}/comments",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"content": f"Комментарий {i}"},
+        )
+
+    resp = await client.get(f"/videos/{video.id}/comments")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["total"] == 3
+    assert len(body["comments"]) == 3
+    for c in body["comments"]:
+        assert c["author_username"] == "commenter3"
+        assert c["is_deleted"] is False
+
+
+@pytest.mark.asyncio
+async def test_list_comments_nonexistent_video(client: AsyncClient):
+    resp = await client.get(
+        "/videos/00000000-0000-0000-0000-000000000000/comments"
+    )
+    assert resp.status_code == 404, resp.text
