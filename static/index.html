@@ -28,6 +28,9 @@
         .search-container input { background: transparent; border: none; color: white; outline: none; font-size: 14px; width: 200px; }
         .search-container button { background: var(--hover-bg); border: none; color: white; padding: 4px 8px; border-radius: 10px; cursor: pointer; }
 
+        /* Подсветка поиска */
+        .highlight { background-color: #ffeb3b; color: black; font-weight: bold; }
+
         /* --- Вкладки --- */
         .tabs-container { display: flex; gap: 12px; padding: 0 16px 12px 16px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--border-color); }
         .tabs-container::-webkit-scrollbar { display: none; }
@@ -141,9 +144,7 @@
         
         <div class="profile-section">
             <h2>История просмотров</h2>
-            <div class="history-container" id="historyContainer">
-                <p style="color: var(--text-secondary); font-size: 14px;">Вы пока ничего не смотрели.</p>
-            </div>
+            <div class="history-container" id="historyContainer"></div>
         </div>
 
         <div class="profile-section">
@@ -172,7 +173,6 @@
                 <div class="video-actions">
                     <div class="action-btn" onclick="likeVideo('like')" id="likeBtn">👍 <span id="likeCount">0</span></div>
                     <div class="action-btn" onclick="likeVideo('dislike')" id="dislikeBtn">👎 <span id="dislikeCount">0</span></div>
-                    <!-- Кнопка Поделиться -->
                     <div class="action-btn" onclick="shareVideo()" style="margin-left:auto;">🔗 Поделиться</div>
                 </div>
 
@@ -196,11 +196,9 @@
         let currentVideoId = null;
         let allVideos = []; 
         let historyIds = JSON.parse(localStorage.getItem('history') || '[]');
-        
-        // Имитация подписок (сохраняем ID авторов в localStorage)
         let subscribedAuthors = JSON.parse(localStorage.getItem('subs') || '[]');
 
-        // --- Поиск ---
+        // --- Поиск с подсветкой ---
         function toggleSearch() {
             const container = document.getElementById('searchContainer');
             if (container.style.display === 'none' || container.style.display === '') {
@@ -214,11 +212,12 @@
         }
 
         function filterVideos() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
+            const query = document.getElementById('searchInput').value.trim();
             if (!query) return renderVideos(allVideos);
             
-            const filtered = allVideos.filter(v => v.title.toLowerCase().includes(query));
-            renderVideos(filtered);
+            // Фильтруем видео
+            const filtered = allVideos.filter(v => v.title.toLowerCase().includes(query.toLowerCase()));
+            renderVideos(filtered, query); // Передаем query для подсветки
         }
 
         // --- Навигация и Вкладки ---
@@ -244,7 +243,6 @@
             if (tabType === 'home') {
                 renderVideos(allVideos);
             } else if (tabType === 'subs') {
-                // Фильтруем только по подписанным авторам
                 const subVideos = allVideos.filter(v => subscribedAuthors.includes(v.author_username));
                 if(subVideos.length === 0) {
                     document.getElementById('videoGrid').innerHTML = '<p style="padding:20px; color:#aaa;">Вы еще не подписаны ни на кого. Подпишитесь на автора в его видео!</p>';
@@ -252,7 +250,6 @@
                     renderVideos(subVideos);
                 }
             } else if (tabType === 'music') {
-                // Имитация музыки: ищем слова в названии
                 const musicKeywords = ['music', 'song', 'музыка', 'песня', 'клип'];
                 const musicVideos = allVideos.filter(v => musicKeywords.some(kw => v.title.toLowerCase().includes(kw)));
                 if(musicVideos.length === 0) {
@@ -261,13 +258,12 @@
                     renderVideos(musicVideos);
                 }
             } else if (tabType === 'trending') {
-                // Имитация трендов (сортируем по длине названия или просто рандомно)
                 const trendingVideos = [...allVideos].sort(() => 0.5 - Math.random());
                 renderVideos(trendingVideos);
             }
         }
 
-        // --- История и Библиотека ---
+        // --- История ---
         function addToHistory(videoId) {
             historyIds = historyIds.filter(id => id !== videoId);
             historyIds.unshift(videoId);
@@ -290,7 +286,6 @@
             }
 
             historyVideos.forEach(video => {
-                // Карточка для истории в профиле
                 const card = document.createElement('div');
                 card.className = 'history-card';
                 card.innerHTML = `
@@ -301,7 +296,6 @@
                 card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
                 container.appendChild(card);
 
-                // Дублируем в библиотеку (Недавние)
                 const libCard = document.createElement('div');
                 libCard.className = 'history-card';
                 libCard.innerHTML = `
@@ -341,6 +335,7 @@
             localStorage.removeItem('token');
             localStorage.removeItem('history');
             localStorage.removeItem('subs');
+            localStorage.removeItem('comments_db'); // Очищаем и комментарии
             historyIds = [];
             subscribedAuthors = [];
             document.getElementById('authBlock').style.display = 'flex';
@@ -360,16 +355,24 @@
             }
         }
 
-        function renderVideos(videos) {
+        // Функция рендера с подсветкой поиска
+        function renderVideos(videos, searchQuery = '') {
             const grid = document.getElementById('videoGrid');
             grid.innerHTML = '';
             
             if (!videos || videos.length === 0) {
-                grid.innerHTML = '<p style="padding: 20px;">Видео пока нет.</p>';
+                grid.innerHTML = '<p style="padding: 20px;">Ничего не найдено.</p>';
                 return;
             }
 
             videos.forEach(video => {
+                let titleHtml = video.title;
+                // Если есть поисковый запрос, подсвечиваем совпадения
+                if (searchQuery) {
+                    const regex = new RegExp(`(${searchQuery})`, 'gi');
+                    titleHtml = video.title.replace(regex, '<span class="highlight">$1</span>');
+                }
+
                 const card = document.createElement('div');
                 card.className = 'video-card';
                 card.innerHTML = `
@@ -377,7 +380,7 @@
                     <div class="video-info">
                         <div class="avatar"></div>
                         <div class="video-details">
-                            <h3 class="video-title">${video.title}</h3>
+                            <h3 class="video-title">${titleHtml}</h3>
                             <div class="author">${video.author_username || 'Автор'}</div>
                         </div>
                     </div>
@@ -397,30 +400,29 @@
             document.getElementById('modalDescription').innerText = description || 'Описание отсутствует.';
             document.getElementById('videoModal').style.display = 'block';
             
-            // Кнопка подписки (визуальная)
-            const subBtn = document.getElementById('subscribeBtn');
-            if (subscribedAuthors.includes(author)) {
-                subBtn.innerText = 'Отписаться';
-                subBtn.style.background = '#333';
-            } else {
-                subBtn.innerText = 'Подписаться';
-                subBtn.style.background = '#ff0000';
-            }
-            
             try {
+                // Браузерный запрос к нашему API для получения ссылки
                 const res = await fetch(`${API_URL}/videos/${id}/stream`);
                 if (res.ok) {
                     const data = await res.json();
+                    // Заменяем внутренний хост MinIO на localhost, если API вернул youtude-minio
+                    let videoUrl = data.url || data.stream_url;
+                    if (videoUrl) {
+                        videoUrl = videoUrl.replace('http://youtude-minio:9000', 'http://localhost:9000');
+                    }
+                    
                     document.getElementById('modalPlayer').innerHTML = `
                         <video controls style="width:100%; height:100%;" autoplay>
-                            <source src="${data.url || data.stream_url}" type="video/mp4">
+                            <source src="${videoUrl}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
                         </video>
                     `;
                 } else {
-                    document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Видео недоступно</span>`;
+                    document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Видео недоступно (возможно, оно скрыто)</span>`;
                 }
             } catch (e) {
-                document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Ошибка загрузки</span>`;
+                document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Ошибка загрузки видео. Проверьте консоль.</span>`;
+                console.error(e);
             }
 
             loadComments(id);
@@ -431,60 +433,49 @@
             document.getElementById('modalPlayer').innerHTML = ''; 
         }
 
-        // Функция "Поделиться"
         function shareVideo() {
             const url = `${window.location.origin}/static/index.html?video=${currentVideoId}`;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Ссылка на видео скопирована в буфер обмена!');
-            }).catch(() => {
-                alert('Ссылка: ' + url);
-            });
+            navigator.clipboard.writeText(url).then(() => alert('Ссылка скопирована!'));
         }
 
-        // Подписка на автора (визуальная)
-        function toggleSubscription(author) {
-            if (!author) return;
-            if (subscribedAuthors.includes(author)) {
-                subscribedAuthors = subscribedAuthors.filter(a => a !== author);
-                alert('Вы отписались от ' + author);
-            } else {
-                subscribedAuthors.push(author);
-                alert('Вы подписались на ' + author);
-            }
-            localStorage.setItem('subs', JSON.stringify(subscribedAuthors));
-            openVideo(currentVideoId, document.getElementById('modalTitle').innerText, document.getElementById('modalDescription').innerText, author);
-        }
-
-        // --- Комментарии ---
-        let localComments = []; 
+        // --- Комментарии (Сохранение в localStorage) ---
+        
+        // Загружаем базу комментариев из памяти браузера
+        let commentsDB = JSON.parse(localStorage.getItem('comments_db') || '{}');
 
         async function loadComments(videoId) {
             try {
-                const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
-                const data = await res.json();
-                localComments = Array.isArray(data) ? data : (data.comments || data.items || []);
-                renderComments();
+                // Если для этого видео еще нет локальной базы, загружаем с сервера
+                if (!commentsDB[videoId]) {
+                    const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
+                    const data = await res.json();
+                    commentsDB[videoId] = Array.isArray(data) ? data : (data.comments || data.items || []);
+                    localStorage.setItem('comments_db', JSON.stringify(commentsDB));
+                }
+                renderComments(videoId);
             } catch (e) {
                 console.error("Ошибка загрузки комментариев:", e);
             }
         }
 
-        function renderComments() {
+        function renderComments(videoId) {
             const list = document.getElementById('commentsList');
             const token = localStorage.getItem('token');
+            const comments = commentsDB[videoId] || [];
+            
             list.innerHTML = '';
-            document.getElementById('commentCount').innerText = localComments.length;
+            document.getElementById('commentCount').innerText = comments.length;
 
-            if (localComments.length === 0) {
+            if (comments.length === 0) {
                 list.innerHTML = '<p style="color:#aaa;">Комментариев пока нет.</p>';
                 return;
             }
 
-            localComments.forEach((c, index) => {
+            comments.forEach((c, index) => {
                 const controls = token ? `
                     <div class="comment-controls">
-                        <button onclick="editComment(${index})" title="Редактировать">✏️</button>
-                        <button onclick="deleteComment(${index})" title="Удалить">🗑️</button>
+                        <button onclick="editComment('${videoId}', ${index})" title="Редактировать">✏️</button>
+                        <button onclick="deleteComment('${videoId}', ${index})" title="Удалить">🗑️</button>
                     </div>
                 ` : '';
 
@@ -508,6 +499,7 @@
             const content = document.getElementById('newComment').value;
             if (!content) return;
 
+            // Отправляем на сервер (чтобы было в базе)
             const res = await fetch(`${API_URL}/videos/${currentVideoId}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -516,27 +508,33 @@
 
             if (res.ok) {
                 document.getElementById('newComment').value = '';
+                // Сбрасываем кэш для этого видео, чтобы загрузить с сервера свежие данные
+                delete commentsDB[currentVideoId]; 
+                localStorage.setItem('comments_db', JSON.stringify(commentsDB));
                 loadComments(currentVideoId); 
             } else {
                 alert('Ошибка отправки');
             }
         }
 
-        function deleteComment(index) {
+        // Удаление (Локальное)
+        function deleteComment(videoId, index) {
             if (confirm('Удалить этот комментарий?')) {
-                localComments.splice(index, 1);
-                renderComments();
+                commentsDB[videoId].splice(index, 1);
+                localStorage.setItem('comments_db', JSON.stringify(commentsDB));
+                renderComments(videoId);
             }
         }
 
-        function editComment(index) {
+        // Редактирование (Локальное)
+        function editComment(videoId, index) {
             const textDiv = document.getElementById(`comment-text-${index}`);
-            const currentText = textDiv.innerText;
-            const newText = prompt('Редактировать комментарий:', currentText);
+            const newText = prompt('Редактировать комментарий:', textDiv.innerText);
             
             if (newText !== null && newText.trim() !== '') {
                 textDiv.innerText = newText;
-                localComments[index].content = newText;
+                commentsDB[videoId][index].content = newText;
+                localStorage.setItem('comments_db', JSON.stringify(commentsDB));
             }
         }
 
