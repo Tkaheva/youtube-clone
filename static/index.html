@@ -15,105 +15,46 @@
             --profile-color: #1ea77d;
         }
 
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
-            font-family: 'Roboto', Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Roboto', Arial, sans-serif; margin: 0; padding: 0; }
 
         /* --- Верхняя панель --- */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 16px;
-            position: sticky;
-            top: 0;
-            background-color: var(--bg-color);
-            z-index: 100;
-        }
-
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; position: sticky; top: 0; background-color: var(--bg-color); z-index: 100; }
+        .logo-area { display: flex; align-items: center; gap: 5px; font-size: 20px; font-weight: bold; cursor: pointer; }
         .logo-icon { color: var(--accent-color); font-size: 24px; }
-
         .icons-area { display: flex; gap: 15px; align-items: center; font-size: 20px; }
+        
+        /* Поиск */
+        .search-container { display: none; align-items: center; gap: 5px; background: #1f1f1f; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border-color); }
+        .search-container input { background: transparent; border: none; color: white; outline: none; font-size: 14px; width: 200px; }
+        .search-container button { background: var(--hover-bg); border: none; color: white; padding: 4px 8px; border-radius: 10px; cursor: pointer; }
 
         /* --- Вкладки --- */
-        .tabs-container {
-            display: flex;
-            gap: 12px;
-            padding: 0 16px 12px 16px;
-            overflow-x: auto;
-            white-space: nowrap;
-            border-bottom: 1px solid var(--border-color);
-        }
+        .tabs-container { display: flex; gap: 12px; padding: 0 16px 12px 16px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--border-color); }
         .tabs-container::-webkit-scrollbar { display: none; }
-
-        .tab {
-            background-color: var(--hover-bg);
-            color: var(--text-color);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+        .tab { background-color: var(--hover-bg); color: var(--text-color); padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
         .tab.active { background-color: var(--text-color); color: var(--bg-color); }
 
         /* --- Сетка видео --- */
-        .video-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
-            gap: 16px; 
-            padding: 16px;
-        }
-
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 16px; }
         .video-card { cursor: pointer; border-radius: 12px; overflow: hidden; }
-        .thumbnail { 
-            width: 100%; aspect-ratio: 16 / 9; background: #222; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 40px; color: #555; position: relative;
-        }
+        .thumbnail { width: 100%; aspect-ratio: 16 / 9; background: #222; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #555; position: relative; }
         .thumbnail::after { content: '▶'; position: absolute; opacity: 0.5; }
         .video-info { display: flex; gap: 12px; margin-top: 12px; }
         .avatar { width: 36px; height: 36px; border-radius: 50%; background: #555; flex-shrink: 0; }
         .video-details { flex-grow: 1; }
-        .video-title { 
-            font-weight: 500; font-size: 16px; margin: 0; 
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-        }
+        .video-title { font-weight: 500; font-size: 16px; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .author { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
 
-        /* --- Экран Профиля (Личный кабинет) --- */
+        /* --- Профиль --- */
         .profile-page { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
         .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-        .profile-avatar { 
-            width: 80px; height: 80px; border-radius: 50%; 
-            background: var(--profile-color); color: white; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 40px; font-weight: bold;
-        }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--profile-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; }
         .profile-name { font-size: 24px; font-weight: bold; margin: 0; }
-        .profile-btn { 
-            background: var(--text-color); color: var(--bg-color); 
-            padding: 10px 20px; border-radius: 20px; font-weight: bold; 
-            border: none; cursor: pointer; width: 100%; font-size: 16px;
-        }
-        .profile-section { margin-top: 30px; }
+        .profile-btn { background: var(--text-color); color: var(--bg-color); padding: 10px 20px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; width: 100%; font-size: 16px; margin-bottom: 20px;}
+        .profile-section { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;}
         .profile-section h2 { font-size: 20px; margin-bottom: 15px; }
 
-        /* --- Модальное окно (Плеер) --- */
+        /* --- Модальное окно --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; }
         .modal-content { background: var(--bg-color); max-width: 1100px; margin: 40px auto; padding: 20px; border-radius: 12px; position: relative; }
         .close-btn { position: absolute; top: 10px; right: 20px; background: var(--hover-bg); font-size: 20px; padding: 5px 15px; border-radius: 50%; color: white; border: none; cursor: pointer;}
@@ -122,25 +63,21 @@
         .video-header { margin-bottom: 20px; }
         .video-header h1 { font-size: 22px; margin: 0 0 10px 0; }
         .video-description { background: var(--hover-bg); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; margin-top: 15px; }
-        
         .video-actions { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
         .action-btn { background: var(--hover-bg); padding: 8px 16px; border-radius: 20px; font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;}
         .action-btn:hover { background: #3f3f3f; }
 
         .comments-section { margin-top: 20px; }
         .comment-input { width: 100%; padding: 10px; background: #1f1f1f; border: 1px solid var(--border-color); color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; resize: vertical; }
-        .comment { display: flex; gap: 10px; margin-bottom: 15px; position: relative; }
+        .comment { display: flex; gap: 10px; margin-bottom: 15px; position: relative; padding-right: 60px; }
         .comment-body { background: var(--hover-bg); padding: 10px; border-radius: 8px; width: 100%; }
         .comment-author { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #ddd;}
         
-        /* Кнопка удаления комментария */
-        .delete-comment-btn {
-            position: absolute; right: 5px; top: 5px; 
-            background: none; border: none; color: var(--text-secondary); 
-            cursor: pointer; font-size: 14px; display: none;
-        }
-        .comment:hover .delete-comment-btn { display: block; }
-        .delete-comment-btn:hover { color: var(--accent-color); }
+        /* Кнопки управления комментом */
+        .comment-controls { position: absolute; right: 0; top: 5px; display: flex; gap: 5px; opacity: 0; transition: opacity 0.2s; }
+        .comment:hover .comment-controls { opacity: 1; }
+        .comment-controls button { background: var(--hover-bg); border: none; color: var(--text-secondary); cursor: pointer; padding: 5px; border-radius: 4px; font-size: 12px;}
+        .comment-controls button:hover { color: white; }
 
         /* --- Авторизация --- */
         .auth-box { display: flex; gap: 10px; align-items: center; }
@@ -155,6 +92,11 @@
             <span class="logo-icon">▶</span> YouTude
         </div>
         
+        <div id="searchContainer" class="search-container">
+            <input type="text" id="searchInput" placeholder="Поиск..." oninput="filterVideos()">
+            <button onclick="toggleSearch()">X</button>
+        </div>
+
         <div class="icons-area">
             <div id="authBlock" class="auth-box">
                 <input type="email" id="email" placeholder="Email">
@@ -162,16 +104,15 @@
                 <button onclick="login()">Войти</button>
             </div>
             <div id="userInfo" style="display:none;">
-                <!-- Кнопка перехода в профиль -->
                 <div id="avatarBtn" onclick="showPage('profile')" style="width: 32px; height: 32px; border-radius: 50%; background: var(--profile-color); display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: white;">А</div>
                 <button onclick="logout()" style="background: var(--hover-bg); border-radius: 50%; padding: 5px 10px; border: none; color: white; cursor: pointer; margin-left: 10px;">Выйти</button>
             </div>
-            <span style="cursor:pointer;">🔔</span>
-            <span style="cursor:pointer;">🔍</span>
+            <span id="notifyIcon" style="cursor:pointer;" title="Уведомления" onclick="alert('У вас 0 новых уведомлений!')">🔔</span>
+            <span id="searchIcon" style="cursor:pointer;" title="Поиск" onclick="toggleSearch()">🔍</span>
         </div>
     </div>
 
-    <!-- Главная страница (Лента) -->
+    <!-- Главная страница -->
     <div id="homePage">
         <div class="tabs-container">
             <div class="tab active" onclick="switchTab(this)">Главная</div>
@@ -182,7 +123,7 @@
         <div class="video-grid" id="videoGrid"></div>
     </div>
 
-    <!-- Страница Профиля (Личный кабинет) -->
+    <!-- Личный кабинет -->
     <div id="profilePage" class="profile-page">
         <div class="profile-header">
             <div class="profile-avatar">А</div>
@@ -191,23 +132,8 @@
                 <div style="color: var(--text-secondary);">@anastasia</div>
             </div>
         </div>
-        <button class="profile-btn">Создать канал</button>
+        <button class="profile-btn" onclick="alert('Функция создания канала в разработке!')">Создать канал</button>
         
-        <div class="profile-section">
-            <h2>История</h2>
-            <div style="display: flex; gap: 10px; overflow-x: auto;">
-                <!-- Имитация видео в истории -->
-                <div style="min-width: 200px;">
-                    <div style="width: 200px; height: 112px; background: #333; border-radius: 8px;"></div>
-                    <div style="margin-top: 5px; font-size: 14px;">Сергей Орлов - Про ПОДАРКИ...</div>
-                </div>
-                <div style="min-width: 200px;">
-                    <div style="width: 200px; height: 112px; background: #333; border-radius: 8px;"></div>
-                    <div style="margin-top: 5px; font-size: 14px;">Как засмущался...</div>
-                </div>
-            </div>
-        </div>
-
         <div class="profile-section">
             <h2>Библиотека</h2>
             <div style="display: flex; gap: 10px;">
@@ -253,8 +179,28 @@
     <script>
         const API_URL = '';
         let currentVideoId = null;
+        let allVideos = []; // Храним все видео для поиска
 
-        // --- Навигация и вкладки ---
+        // --- Поиск ---
+        function toggleSearch() {
+            const container = document.getElementById('searchContainer');
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'flex';
+                document.getElementById('searchInput').focus();
+            } else {
+                container.style.display = 'none';
+                document.getElementById('searchInput').value = '';
+                renderVideos(allVideos); // Сброс фильтра
+            }
+        }
+
+        function filterVideos() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allVideos.filter(v => v.title.toLowerCase().includes(query));
+            renderVideos(filtered);
+        }
+
+        // --- Навигация ---
         function showPage(page) {
             if (page === 'home') {
                 document.getElementById('homePage').style.display = 'block';
@@ -266,12 +212,9 @@
         }
 
         function switchTab(element) {
-            // Убираем класс active у всех вкладок
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            // Добавляем класс active на нажатую
+            document.querySelectorAll('.tabs-container .tab').forEach(t => t.classList.remove('active'));
             element.classList.add('active');
-            // Для демонстрации просто перезагружаем ленту
-            loadVideos(); 
+            // Просто визуальный эффект, лента не меняется
         }
 
         // --- Авторизация ---
@@ -305,50 +248,53 @@
             showPage('home');
         }
 
-        // --- Лента видео ---
+        // --- Видео ---
         async function loadVideos() {
             try {
                 const res = await fetch(`${API_URL}/videos`);
                 const data = await res.json();
-                const videos = data.videos || data; 
-                const grid = document.getElementById('videoGrid');
-                grid.innerHTML = '';
-                
-                if (!videos || videos.length === 0) {
-                    grid.innerHTML = '<p style="padding: 20px;">Видео пока нет.</p>';
-                    return;
-                }
-
-                videos.forEach(video => {
-                    const card = document.createElement('div');
-                    card.className = 'video-card';
-                    card.innerHTML = `
-                        <div class="thumbnail"></div>
-                        <div class="video-info">
-                            <div class="avatar"></div>
-                            <div class="video-details">
-                                <h3 class="video-title">${video.title}</h3>
-                                <div class="author">${video.author_username || 'Автор'}</div>
-                                <div class="author" style="font-size: 12px;">1 млн просмотров • 1 день назад</div>
-                            </div>
-                        </div>
-                    `;
-                    card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
-                    grid.appendChild(card);
-                });
+                allVideos = data.videos || data; 
+                renderVideos(allVideos);
             } catch (e) {
                 console.error(e);
             }
         }
 
-        // --- Просмотр видео (Модалка) ---
+        function renderVideos(videos) {
+            const grid = document.getElementById('videoGrid');
+            grid.innerHTML = '';
+            
+            if (!videos || videos.length === 0) {
+                grid.innerHTML = '<p style="padding: 20px;">Видео пока нет.</p>';
+                return;
+            }
+
+            videos.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.innerHTML = `
+                    <div class="thumbnail"></div>
+                    <div class="video-info">
+                        <div class="avatar"></div>
+                        <div class="video-details">
+                            <h3 class="video-title">${video.title}</h3>
+                            <div class="author">${video.author_username || 'Автор'}</div>
+                            <div class="author" style="font-size: 12px;">1 млн просмотров • 1 день назад</div>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
+                grid.appendChild(card);
+            });
+        }
+
+        // --- Просмотр видео ---
         async function openVideo(id, title, description, author) {
             currentVideoId = id;
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalAuthor').innerText = `Автор: ${author || 'Неизвестен'}`;
             document.getElementById('modalDescription').innerText = description || 'Описание отсутствует.';
             document.getElementById('videoModal').style.display = 'block';
-            document.getElementById('commentsList').innerHTML = '<p>Загрузка комментариев...</p>';
             
             try {
                 const res = await fetch(`${API_URL}/videos/${id}/stream`);
@@ -363,7 +309,7 @@
                     document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Видео недоступно</span>`;
                 }
             } catch (e) {
-                document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Ошибка загрузки видео</span>`;
+                document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Ошибка загрузки</span>`;
             }
 
             loadComments(id);
@@ -374,41 +320,51 @@
             document.getElementById('modalPlayer').innerHTML = ''; 
         }
 
-        // --- Комментарии ---
+        // --- Комментарии (с визуальным удалением/редактированием) ---
+        let localComments = []; // Локальное хранилище для имитации
+
         async function loadComments(videoId) {
             try {
                 const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
                 const data = await res.json();
-                const comments = Array.isArray(data) ? data : (data.comments || data.items || []);
-                const list = document.getElementById('commentsList');
-                const token = localStorage.getItem('token');
-                
-                list.innerHTML = '';
-                document.getElementById('commentCount').innerText = comments.length;
-
-                if (comments.length === 0) {
-                    list.innerHTML = '<p style="color:#aaa;">Комментариев пока нет.</p>';
-                    return;
-                }
-
-                comments.forEach(c => {
-                    // Если мы авторизованы, показываем кнопку удаления (в реальном приложении надо проверять, наш ли это коммент)
-                    const deleteBtn = token ? `<button class="delete-comment-btn" onclick="deleteComment(${c.id})">Удалить</button>` : '';
-                    
-                    list.innerHTML += `
-                        <div class="comment">
-                            <div class="avatar" style="width:32px; height:32px;"></div>
-                            <div class="comment-body">
-                                ${deleteBtn}
-                                <div class="comment-author">${c.author_username || c.user?.username || 'Пользователь'}</div>
-                                <div>${c.content || c.text}</div>
-                            </div>
-                        </div>
-                    `;
-                });
+                localComments = Array.isArray(data) ? data : (data.comments || data.items || []);
+                renderComments();
             } catch (e) {
                 console.error("Ошибка загрузки комментариев:", e);
             }
+        }
+
+        function renderComments() {
+            const list = document.getElementById('commentsList');
+            const token = localStorage.getItem('token');
+            list.innerHTML = '';
+            document.getElementById('commentCount').innerText = localComments.length;
+
+            if (localComments.length === 0) {
+                list.innerHTML = '<p style="color:#aaa;">Комментариев пока нет.</p>';
+                return;
+            }
+
+            localComments.forEach((c, index) => {
+                // Кнопки управления видны, только если пользователь авторизован
+                const controls = token ? `
+                    <div class="comment-controls">
+                        <button onclick="editComment(${index})" title="Редактировать">✏️</button>
+                        <button onclick="deleteComment(${index})" title="Удалить">🗑️</button>
+                    </div>
+                ` : '';
+
+                list.innerHTML += `
+                    <div class="comment">
+                        <div class="avatar" style="width:32px; height:32px;"></div>
+                        <div class="comment-body">
+                            ${controls}
+                            <div class="comment-author">${c.author_username || c.user?.username || 'Пользователь'}</div>
+                            <div id="comment-text-${index}">${c.content || c.text}</div>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
         async function addComment() {
@@ -420,10 +376,7 @@
 
             const res = await fetch(`${API_URL}/videos/${currentVideoId}/comments`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ content: content })
             });
 
@@ -431,26 +384,27 @@
                 document.getElementById('newComment').value = '';
                 loadComments(currentVideoId); 
             } else {
-                alert('Ошибка отправки комментария');
+                alert('Ошибка отправки');
             }
         }
 
-        // Удаление комментария
-        async function deleteComment(commentId) {
-            const token = localStorage.getItem('token');
-            if (!token) return;
+        // Визуальное удаление
+        function deleteComment(index) {
+            if (confirm('Удалить этот комментарий?')) {
+                localComments.splice(index, 1);
+                renderComments();
+            }
+        }
 
-            if (!confirm('Вы уверены, что хотите удалить этот комментарий?')) return;
-
-            const res = await fetch(`${API_URL}/comments/${commentId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (res.ok) {
-                loadComments(currentVideoId);
-            } else {
-                alert('Не удалось удалить комментарий (возможно, нет прав).');
+        // Визуальное редактирование
+        function editComment(index) {
+            const textDiv = document.getElementById(`comment-text-${index}`);
+            const currentText = textDiv.innerText;
+            const newText = prompt('Редактировать комментарий:', currentText);
+            
+            if (newText !== null && newText.trim() !== '') {
+                textDiv.innerText = newText;
+                localComments[index].content = newText; // Обновляем локально
             }
         }
 
@@ -464,7 +418,6 @@
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-
                 if (res.ok) {
                     const count = document.getElementById('likeCount');
                     count.innerText = parseInt(count.innerText) + 1;
