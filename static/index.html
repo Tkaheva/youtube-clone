@@ -12,6 +12,7 @@
             --border-color: #3f3f3f;
             --hover-bg: #272727;
             --accent-color: #ff0000;
+            --profile-color: #1ea77d;
         }
 
         body { 
@@ -43,19 +44,11 @@
             cursor: pointer;
         }
 
-        .logo-icon {
-            color: var(--accent-color);
-            font-size: 24px;
-        }
+        .logo-icon { color: var(--accent-color); font-size: 24px; }
 
-        .icons-area {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            font-size: 20px;
-        }
+        .icons-area { display: flex; gap: 15px; align-items: center; font-size: 20px; }
 
-        /* --- Вкладки (Главная, Подписки...) --- */
+        /* --- Вкладки --- */
         .tabs-container {
             display: flex;
             gap: 12px;
@@ -64,8 +57,7 @@
             white-space: nowrap;
             border-bottom: 1px solid var(--border-color);
         }
-
-        .tabs-container::-webkit-scrollbar { display: none; } /* Скрываем скроллбар */
+        .tabs-container::-webkit-scrollbar { display: none; }
 
         .tab {
             background-color: var(--hover-bg);
@@ -77,11 +69,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-
-        .tab.active {
-            background-color: var(--text-color);
-            color: var(--bg-color);
-        }
+        .tab.active { background-color: var(--text-color); color: var(--bg-color); }
 
         /* --- Сетка видео --- */
         .video-grid { 
@@ -91,68 +79,39 @@
             padding: 16px;
         }
 
-        @media (max-width: 600px) {
-            .video-grid { grid-template-columns: 1fr; gap: 20px; padding: 0; }
-            .video-card { border-radius: 0; }
-            .thumbnail { border-radius: 0; }
-            .video-info { padding: 0 16px; }
-        }
-
-        .video-card { 
-            cursor: pointer; 
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
+        .video-card { cursor: pointer; border-radius: 12px; overflow: hidden; }
         .thumbnail { 
-            width: 100%; 
-            aspect-ratio: 16 / 9; 
-            background: #222; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 40px; 
-            color: #555; 
-            position: relative;
+            width: 100%; aspect-ratio: 16 / 9; background: #222; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 40px; color: #555; position: relative;
         }
-
-        .thumbnail::after {
-            content: '▶';
-            position: absolute;
-            opacity: 0.5;
-        }
-
-        .video-info { 
-            display: flex; 
-            gap: 12px; 
-            margin-top: 12px; 
-        }
-
-        .avatar { 
-            width: 36px; 
-            height: 36px; 
-            border-radius: 50%; 
-            background: #555; 
-            flex-shrink: 0; 
-        }
-
+        .thumbnail::after { content: '▶'; position: absolute; opacity: 0.5; }
+        .video-info { display: flex; gap: 12px; margin-top: 12px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #555; flex-shrink: 0; }
         .video-details { flex-grow: 1; }
-        
         .video-title { 
-            font-weight: 500; 
-            font-size: 16px; 
-            margin: 0; 
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            font-weight: 500; font-size: 16px; margin: 0; 
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
+        .author { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
 
-        .author { 
-            color: var(--text-secondary); 
-            font-size: 14px; 
-            margin-top: 4px; 
+        /* --- Экран Профиля (Личный кабинет) --- */
+        .profile-page { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+        .profile-avatar { 
+            width: 80px; height: 80px; border-radius: 50%; 
+            background: var(--profile-color); color: white; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 40px; font-weight: bold;
         }
+        .profile-name { font-size: 24px; font-weight: bold; margin: 0; }
+        .profile-btn { 
+            background: var(--text-color); color: var(--bg-color); 
+            padding: 10px 20px; border-radius: 20px; font-weight: bold; 
+            border: none; cursor: pointer; width: 100%; font-size: 16px;
+        }
+        .profile-section { margin-top: 30px; }
+        .profile-section h2 { font-size: 20px; margin-bottom: 15px; }
 
         /* --- Модальное окно (Плеер) --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; }
@@ -170,11 +129,20 @@
 
         .comments-section { margin-top: 20px; }
         .comment-input { width: 100%; padding: 10px; background: #1f1f1f; border: 1px solid var(--border-color); color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; resize: vertical; }
-        .comment { display: flex; gap: 10px; margin-bottom: 15px; }
+        .comment { display: flex; gap: 10px; margin-bottom: 15px; position: relative; }
         .comment-body { background: var(--hover-bg); padding: 10px; border-radius: 8px; width: 100%; }
         .comment-author { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #ddd;}
+        
+        /* Кнопка удаления комментария */
+        .delete-comment-btn {
+            position: absolute; right: 5px; top: 5px; 
+            background: none; border: none; color: var(--text-secondary); 
+            cursor: pointer; font-size: 14px; display: none;
+        }
+        .comment:hover .delete-comment-btn { display: block; }
+        .delete-comment-btn:hover { color: var(--accent-color); }
 
-        /* --- Авторизация в шапке --- */
+        /* --- Авторизация --- */
         .auth-box { display: flex; gap: 10px; align-items: center; }
         .auth-box input { padding: 6px; background: #1f1f1f; border: 1px solid var(--border-color); color: white; border-radius: 4px; width: 120px; font-size: 12px;}
         .auth-box button { padding: 6px 12px; background: var(--accent-color); color: white; border: none; border-radius: 16px; cursor: pointer; font-weight: bold; font-size: 12px;}
@@ -183,39 +151,71 @@
 <body>
     <!-- Верхняя панель -->
     <div class="top-bar">
-        <div class="logo-area">
+        <div class="logo-area" onclick="showPage('home')">
             <span class="logo-icon">▶</span> YouTude
         </div>
         
         <div class="icons-area">
-            <!-- Авторизация -->
             <div id="authBlock" class="auth-box">
                 <input type="email" id="email" placeholder="Email">
                 <input type="password" id="password" placeholder="Пароль">
                 <button onclick="login()">Войти</button>
             </div>
             <div id="userInfo" style="display:none;">
-                <span style="font-size: 14px; margin-right: 10px; color: var(--text-secondary);">Профиль</span>
-                <button onclick="logout()" style="background: var(--hover-bg); border-radius: 50%; padding: 5px 10px; border: none; color: white; cursor: pointer;">Выйти</button>
+                <!-- Кнопка перехода в профиль -->
+                <div id="avatarBtn" onclick="showPage('profile')" style="width: 32px; height: 32px; border-radius: 50%; background: var(--profile-color); display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: white;">А</div>
+                <button onclick="logout()" style="background: var(--hover-bg); border-radius: 50%; padding: 5px 10px; border: none; color: white; cursor: pointer; margin-left: 10px;">Выйти</button>
             </div>
-            
-            <!-- Иконки -->
-            <span style="cursor:pointer;" title="Уведомления">🔔</span>
-            <span style="cursor:pointer;" title="Поиск">🔍</span>
+            <span style="cursor:pointer;">🔔</span>
+            <span style="cursor:pointer;">🔍</span>
         </div>
     </div>
 
-    <!-- Вкладки -->
-    <div class="tabs-container">
-        <div class="tab active">Главная</div>
-        <div class="tab">Подписки</div>
-        <div class="tab">Музыка</div>
-        <div class="tab">Сейчас в тренде</div>
-        <div class="tab">Игры</div>
+    <!-- Главная страница (Лента) -->
+    <div id="homePage">
+        <div class="tabs-container">
+            <div class="tab active" onclick="switchTab(this)">Главная</div>
+            <div class="tab" onclick="switchTab(this)">Подписки</div>
+            <div class="tab" onclick="switchTab(this)">Музыка</div>
+            <div class="tab" onclick="switchTab(this)">Сейчас в тренде</div>
+        </div>
+        <div class="video-grid" id="videoGrid"></div>
     </div>
 
-    <!-- Сетка видео -->
-    <div class="video-grid" id="videoGrid"></div>
+    <!-- Страница Профиля (Личный кабинет) -->
+    <div id="profilePage" class="profile-page">
+        <div class="profile-header">
+            <div class="profile-avatar">А</div>
+            <div>
+                <h1 class="profile-name">Анастасия Ткачёва</h1>
+                <div style="color: var(--text-secondary);">@anastasia</div>
+            </div>
+        </div>
+        <button class="profile-btn">Создать канал</button>
+        
+        <div class="profile-section">
+            <h2>История</h2>
+            <div style="display: flex; gap: 10px; overflow-x: auto;">
+                <!-- Имитация видео в истории -->
+                <div style="min-width: 200px;">
+                    <div style="width: 200px; height: 112px; background: #333; border-radius: 8px;"></div>
+                    <div style="margin-top: 5px; font-size: 14px;">Сергей Орлов - Про ПОДАРКИ...</div>
+                </div>
+                <div style="min-width: 200px;">
+                    <div style="width: 200px; height: 112px; background: #333; border-radius: 8px;"></div>
+                    <div style="margin-top: 5px; font-size: 14px;">Как засмущался...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>Библиотека</h2>
+            <div style="display: flex; gap: 10px;">
+                <div class="tab" style="padding: 10px 20px;">Недавние</div>
+                <div class="tab" style="padding: 10px 20px;">Плейлисты</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Модальное окно -->
     <div class="modal" id="videoModal">
@@ -254,6 +254,26 @@
         const API_URL = '';
         let currentVideoId = null;
 
+        // --- Навигация и вкладки ---
+        function showPage(page) {
+            if (page === 'home') {
+                document.getElementById('homePage').style.display = 'block';
+                document.getElementById('profilePage').style.display = 'none';
+            } else if (page === 'profile') {
+                document.getElementById('homePage').style.display = 'none';
+                document.getElementById('profilePage').style.display = 'block';
+            }
+        }
+
+        function switchTab(element) {
+            // Убираем класс active у всех вкладок
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            // Добавляем класс active на нажатую
+            element.classList.add('active');
+            // Для демонстрации просто перезагружаем ленту
+            loadVideos(); 
+        }
+
         // --- Авторизация ---
         async function login() {
             const email = document.getElementById('email').value;
@@ -273,9 +293,8 @@
                 localStorage.setItem('token', data.access_token);
                 document.getElementById('authBlock').style.display = 'none';
                 document.getElementById('userInfo').style.display = 'flex';
-                alert('Успешный вход!');
             } else {
-                alert('Ошибка входа. Проверьте логин/пароль.');
+                alert('Ошибка входа.');
             }
         }
 
@@ -283,6 +302,7 @@
             localStorage.removeItem('token');
             document.getElementById('authBlock').style.display = 'flex';
             document.getElementById('userInfo').style.display = 'none';
+            showPage('home');
         }
 
         // --- Лента видео ---
@@ -330,9 +350,6 @@
             document.getElementById('videoModal').style.display = 'block';
             document.getElementById('commentsList').innerHTML = '<p>Загрузка комментариев...</p>';
             
-            document.getElementById('likeCount').innerText = '124';
-            document.getElementById('dislikeCount').innerText = '3';
-            
             try {
                 const res = await fetch(`${API_URL}/videos/${id}/stream`);
                 if (res.ok) {
@@ -362,9 +379,10 @@
             try {
                 const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
                 const data = await res.json();
-                
                 const comments = Array.isArray(data) ? data : (data.comments || data.items || []);
                 const list = document.getElementById('commentsList');
+                const token = localStorage.getItem('token');
+                
                 list.innerHTML = '';
                 document.getElementById('commentCount').innerText = comments.length;
 
@@ -374,10 +392,14 @@
                 }
 
                 comments.forEach(c => {
+                    // Если мы авторизованы, показываем кнопку удаления (в реальном приложении надо проверять, наш ли это коммент)
+                    const deleteBtn = token ? `<button class="delete-comment-btn" onclick="deleteComment(${c.id})">Удалить</button>` : '';
+                    
                     list.innerHTML += `
                         <div class="comment">
                             <div class="avatar" style="width:32px; height:32px;"></div>
                             <div class="comment-body">
+                                ${deleteBtn}
                                 <div class="comment-author">${c.author_username || c.user?.username || 'Пользователь'}</div>
                                 <div>${c.content || c.text}</div>
                             </div>
@@ -410,6 +432,25 @@
                 loadComments(currentVideoId); 
             } else {
                 alert('Ошибка отправки комментария');
+            }
+        }
+
+        // Удаление комментария
+        async function deleteComment(commentId) {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            if (!confirm('Вы уверены, что хотите удалить этот комментарий?')) return;
+
+            const res = await fetch(`${API_URL}/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                loadComments(currentVideoId);
+            } else {
+                alert('Не удалось удалить комментарий (возможно, нет прав).');
             }
         }
 
