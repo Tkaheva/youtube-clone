@@ -17,12 +17,14 @@ services:
       retries: 10
 
   minio:
-    # Заменен недоступный bitnami/minio:2024 на совместимый форк pgsty/silo
+    # Совместимый форк MinIO
     image: pgsty/silo:latest
     container_name: youtude-minio
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      # Разрешаем CORS-запросы из браузера (для просмотра видео)
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -40,8 +42,8 @@ services:
     container_name: youtude-api
     environment:
       DATABASE_URL: postgresql+asyncpg://youtude:youtude@youtude-postgres:5432/youtude
+      # Для браузера ссылка должна вести на localhost:9000
       S3_ENDPOINT: http://localhost:9000
-      # Добавлено значение по умолчанию для локальной разработки, чтобы убрать warning
       SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-change-me}
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
