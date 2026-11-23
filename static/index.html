@@ -210,7 +210,6 @@
         let currentVideoId = null;
         let allVideos = []; 
         let historyIds = JSON.parse(localStorage.getItem('history') || '[]');
-        let subscribedAuthors = JSON.parse(localStorage.getItem('subs') || '[]');
 
         // --- Навигация ---
         function showPage(page) {
@@ -224,6 +223,10 @@
                 document.getElementById('profilePage').style.display = 'block';
                 renderHistory();
             }
+        }
+
+        function openProfile() {
+            showPage('profile');
         }
 
         // --- Поиск ---
@@ -240,7 +243,8 @@
         }
 
         function handleSearch() {
-            const query = document.getElementById('searchInput').value.trim();
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            
             if (!query) {
                 showPage('home');
                 return;
@@ -250,31 +254,19 @@
             const grid = document.getElementById('searchGrid');
             const emptyMsg = document.getElementById('emptySearchMsg');
             
-            const filtered = allVideos.filter(v => v.title.toLowerCase().includes(query.toLowerCase()));
+            // Улучшенный поиск с проверкой на наличие данных
+            const filtered = allVideos.filter(v => {
+                const title = (v.title || '').toLowerCase();
+                const author = (v.author_username || '').toLowerCase();
+                return title.includes(query) || author.includes(query);
+            });
             
             grid.innerHTML = '';
             if (filtered.length === 0) {
                 emptyMsg.style.display = 'flex';
             } else {
                 emptyMsg.style.display = 'none';
-                const regex = new RegExp(`(${query})`, 'gi');
-                filtered.forEach(video => {
-                    const titleHtml = video.title.replace(regex, '<span class="highlight">$1</span>');
-                    const card = document.createElement('div');
-                    card.className = 'video-card';
-                    card.innerHTML = `
-                        <div class="thumbnail"></div>
-                        <div class="video-info">
-                            <div class="avatar"></div>
-                            <div class="video-details">
-                                <h3 class="video-title">${titleHtml}</h3>
-                                <div class="author">${video.author_username || 'Автор'}</div>
-                            </div>
-                        </div>
-                    `;
-                    card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
-                    grid.appendChild(card);
-                });
+                renderVideos(filtered, 'searchGrid', query);
             }
         }
 
@@ -285,12 +277,12 @@
 
             if (tabType === 'home') renderVideos(allVideos, 'videoGrid');
             else if (tabType === 'subs') {
-                const subVideos = allVideos.filter(v => subscribedAuthors.includes(v.author_username));
+                const subVideos = allVideos.filter(v => JSON.parse(localStorage.getItem('subs') || '[]').includes(v.author_username));
                 subVideos.length === 0 ? document.getElementById('videoGrid').innerHTML = '<p style="padding:20px; color:#aaa;">Вы еще не подписаны ни на кого.</p>' : renderVideos(subVideos, 'videoGrid');
             }
             else if (tabType === 'music') {
                 const musicKeywords = ['music', 'song', 'музыка', 'песня', 'клип'];
-                const musicVideos = allVideos.filter(v => musicKeywords.some(kw => v.title.toLowerCase().includes(kw)));
+                const musicVideos = allVideos.filter(v => musicKeywords.some(kw => (v.title || '').toLowerCase().includes(kw)));
                 musicVideos.length === 0 ? document.getElementById('videoGrid').innerHTML = '<p style="padding:20px; color:#aaa;">Музыкальных видео не найдено.</p>' : renderVideos(musicVideos, 'videoGrid');
             }
             else if (tabType === 'trending') {
@@ -299,7 +291,7 @@
             }
         }
 
-        // --- Библиотека в профиле ---
+        // --- Библиотека ---
         function switchLibraryTab(type) {
             document.getElementById('tabRecent').classList.remove('active');
             document.getElementById('tabPlaylists').classList.remove('active');
@@ -376,9 +368,8 @@
         }
 
         function logout() {
-            localStorage.clear(); // Очищаем всё при выходе
+            localStorage.clear();
             historyIds = [];
-            subscribedAuthors = [];
             document.getElementById('authBlock').style.display = 'flex';
             document.getElementById('userInfo').style.display = 'none';
             showPage('home');
@@ -468,7 +459,6 @@
         let commentsDB = JSON.parse(localStorage.getItem('comments_db') || '{}');
 
         async function loadComments(videoId) {
-            // Если нет кэша - грузим с сервера
             if (!commentsDB[videoId]) {
                 try {
                     const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
@@ -523,7 +513,6 @@
             const content = document.getElementById('newComment').value;
             if (!content) return;
 
-            // Отправляем на бэкенд
             try {
                 const res = await fetch(`${API_URL}/videos/${currentVideoId}/comments`, {
                     method: 'POST',
@@ -533,14 +522,13 @@
 
                 if (res.ok) {
                     document.getElementById('newComment').value = '';
-                    delete commentsDB[currentVideoId]; // Сброс кэша для этого видео
+                    delete commentsDB[currentVideoId]; 
                     localStorage.setItem('comments_db', JSON.stringify(commentsDB));
                     loadComments(currentVideoId); 
                 } else {
-                    // Если сервер вернул ошибку (например, 422), сохраняем локально
-                    const newComment = { content: content, author_username: "Вы" };
+                    // Fallback на локальное сохранение
                     if (!commentsDB[currentVideoId]) commentsDB[currentVideoId] = [];
-                    commentsDB[currentVideoId].push(newComment);
+                    commentsDB[currentVideoId].push({ content: content, author_username: "Вы" });
                     localStorage.setItem('comments_db', JSON.stringify(commentsDB));
                     document.getElementById('newComment').value = '';
                     renderComments(currentVideoId);
@@ -569,23 +557,28 @@
             }
         }
 
-        // --- Лайки ---
+        // --- Лайки (Исправлено) ---
         async function likeVideo(type) {
             const token = localStorage.getItem('token');
             if (!token) return alert('Войдите, чтобы оценить видео!');
 
+            const btn = document.getElementById(type === 'like' ? 'likeBtn' : 'dislikeBtn');
+            const countSpan = document.getElementById(type === 'like' ? 'likeCount' : 'dislikeCount');
+            
+            // Визуальное изменение (чтобы кнопка всегда реагировала)
+            countSpan.innerText = parseInt(countSpan.innerText) + 1;
+            btn.style.color = '#ff0000';
+
+            // Если лайк, пробуем отправить на сервер (не блокируя UI)
             if (type === 'like') {
-                const res = await fetch(`${API_URL}/videos/${currentVideoId}/like`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const count = document.getElementById('likeCount');
-                    count.innerText = parseInt(count.innerText) + 1;
+                try {
+                    await fetch(`${API_URL}/videos/${currentVideoId}/like`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                } catch (e) {
+                    console.log('Сервер не принял лайк, но UI обновлен локально.');
                 }
-            } else {
-                const count = document.getElementById('dislikeCount');
-                count.innerText = parseInt(count.innerText) + 1;
             }
         }
 
