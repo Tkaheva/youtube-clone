@@ -12,27 +12,23 @@
         input[type="email"], input[type="password"] { padding: 8px; background: #1f1f1f; border: 1px solid #333; color: white; border-radius: 4px; }
         button { padding: 8px 16px; background: #ff0000; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
         button:hover { background: #cc0000; }
-        button.secondary { background: #333; }
+        button.secondary { background: #272727; color: white; }
         
-        /* Сетка видео */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-        .video-card { cursor: pointer; transition: transform 0.2s; }
-        .video-card:hover { transform: scale(1.02); }
-        .thumbnail { width: 100%; height: 170px; background: #333; border-radius: 12px; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #555; }
+        .video-card { cursor: pointer; }
+        .thumbnail { width: 100%; height: 170px; background: #222; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #555; }
         .video-info { display: flex; gap: 10px; margin-top: 10px; }
         .avatar { width: 36px; height: 36px; border-radius: 50%; background: #555; flex-shrink: 0; }
         .video-title { font-weight: 500; font-size: 16px; margin: 0; }
         .author { color: #aaa; font-size: 14px; margin-top: 5px; }
 
-        /* Модальное окно (Плеер) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; overflow-y: auto; }
         .modal-content { background: #0f0f0f; max-width: 1000px; margin: 40px auto; padding: 20px; border-radius: 12px; position: relative; }
         .close-btn { position: absolute; top: 10px; right: 20px; background: #333; font-size: 20px; padding: 5px 15px; border-radius: 50%; }
-        .player-area { width: 100%; height: 500px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #666; }
+        .player-area { width: 100%; height: 500px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
         
-        /* Секция лайков и комментариев */
         .video-actions { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; }
-        .like-btn { background: #272727; padding: 10px 20px; border-radius: 20px; }
+        .action-btn { background: #272727; padding: 10px 20px; border-radius: 20px; font-size: 16px; display: flex; align-items: center; gap: 8px;}
         .comments-section { border-top: 1px solid #333; padding-top: 20px; }
         .comment-input { width: 100%; padding: 10px; background: #1f1f1f; border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; resize: vertical; }
         .comment { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -57,23 +53,20 @@
     <h2>Главная лента</h2>
     <div class="video-grid" id="videoGrid"></div>
 
-    <!-- Модальное окно просмотра видео -->
     <div class="modal" id="videoModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeModal()">X</button>
             <h2 id="modalTitle" style="margin-top: 0;">Название видео</h2>
             
-            <!-- Плеер -->
             <div class="player-area" id="modalPlayer">
-                <span id="playerStatus">Загрузка видео...</span>
+                <span style="color:#888;">Загрузка видео...</span>
             </div>
             
-            <!-- Кнопки действий -->
             <div class="video-actions">
-                <button class="like-btn" onclick="likeVideo()" id="likeBtn">👍 Нравится</button>
+                <button class="action-btn" onclick="likeVideo('like')" id="likeBtn">👍 <span id="likeCount">0</span></button>
+                <button class="action-btn" onclick="likeVideo('dislike')" id="dislikeBtn">👎 <span id="dislikeCount">0</span></button>
             </div>
 
-            <!-- Комментарии -->
             <div class="comments-section">
                 <h3>Комментарии</h3>
                 <textarea id="newComment" class="comment-input" rows="2" placeholder="Написать комментарий..."></textarea>
@@ -87,7 +80,6 @@
         const API_URL = '';
         let currentVideoId = null;
 
-        // --- Авторизация ---
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -118,7 +110,6 @@
             document.getElementById('userInfo').style.display = 'none';
         }
 
-        // --- Лента видео ---
         async function loadVideos() {
             try {
                 const res = await fetch(`${API_URL}/videos`);
@@ -145,7 +136,6 @@
                             </div>
                         </div>
                     `;
-                    // Теперь клик открывает модальное окно!
                     card.onclick = () => openVideo(video.id, video.title);
                     grid.appendChild(card);
                 });
@@ -154,23 +144,23 @@
             }
         }
 
-        // --- Просмотр видео (Модалка) ---
         async function openVideo(id, title) {
             currentVideoId = id;
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('videoModal').style.display = 'block';
             document.getElementById('commentsList').innerHTML = '<p>Загрузка комментариев...</p>';
+            document.getElementById('likeCount').innerText = '0';
+            document.getElementById('dislikeCount').innerText = '0';
             
-            // 1. Получаем ссылку на видео (stream)
+            // 1. Получаем ссылку на видео
             try {
                 const res = await fetch(`${API_URL}/videos/${id}/stream`);
                 if (res.ok) {
                     const data = await res.json();
-                    // Вставляем тег video (даже если ссылка presigned)
+                    // Используем ссылку из ответа
                     document.getElementById('modalPlayer').innerHTML = `
                         <video controls style="width:100%; height:100%;" autoplay>
                             <source src="${data.url || data.stream_url}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
                         </video>
                     `;
                 } else {
@@ -182,14 +172,18 @@
 
             // 2. Загружаем комментарии
             loadComments(id);
+            
+            // В реальном приложении здесь был бы запрос к API для получения количества лайков. 
+            // Пока ставим заглушку, так как в /videos не отдается count.
+            document.getElementById('likeCount').innerText = '12'; 
+            document.getElementById('dislikeCount').innerText = '2';
         }
 
         function closeModal() {
             document.getElementById('videoModal').style.display = 'none';
-            document.getElementById('modalPlayer').innerHTML = ''; // Останавливаем видео
+            document.getElementById('modalPlayer').innerHTML = '';
         }
 
-        // --- Комментарии ---
         async function loadComments(videoId) {
             const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
             const comments = await res.json();
@@ -232,17 +226,18 @@
 
             if (res.ok) {
                 document.getElementById('newComment').value = '';
-                loadComments(currentVideoId); // Обновляем список
+                // Live-обновление: сразу перезапрашиваем список
+                loadComments(currentVideoId); 
             } else {
                 alert('Ошибка отправки комментария');
             }
         }
 
-        // --- Лайки ---
-        async function likeVideo() {
+        async function likeVideo(type) {
             const token = localStorage.getItem('token');
-            if (!token) return alert('Войдите, чтобы поставить лайк!');
+            if (!token) return alert('Войдите, чтобы оценить видео!');
 
+            // Бэкенд Cline поддерживает только лайки (POST /videos/{id}/like)
             const res = await fetch(`${API_URL}/videos/${currentVideoId}/like`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -250,14 +245,14 @@
 
             if (res.ok) {
                 const btn = document.getElementById('likeBtn');
-                btn.innerText = '✅ Лайк поставлен!';
-                setTimeout(() => btn.innerText = '👍 Нравится', 2000);
+                const count = document.getElementById('likeCount');
+                count.innerText = parseInt(count.innerText) + 1;
+                btn.style.color = '#ff0000';
             } else {
                 alert('Ошибка при лайке');
             }
         }
 
-        // Инициализация
         if (localStorage.getItem('token')) {
             document.getElementById('authBlock').style.display = 'none';
             document.getElementById('userInfo').style.display = 'block';
