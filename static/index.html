@@ -54,7 +54,6 @@
         .profile-section { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;}
         .profile-section h2 { font-size: 20px; margin-bottom: 15px; }
         
-        /* История просмотров */
         .history-container { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
         .history-card { min-width: 220px; cursor: pointer; }
         .history-thumbnail { width: 220px; height: 124px; background: #333; border-radius: 8px; position: relative; }
@@ -70,7 +69,8 @@
         .video-header { margin-bottom: 20px; }
         .video-header h1 { font-size: 22px; margin: 0 0 10px 0; }
         .video-description { background: var(--hover-bg); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; margin-top: 15px; }
-        .video-actions { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
+        
+        .video-actions { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; flex-wrap: wrap; }
         .action-btn { background: var(--hover-bg); padding: 8px 16px; border-radius: 20px; font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;}
         .action-btn:hover { background: #3f3f3f; }
 
@@ -119,11 +119,11 @@
 
     <!-- Главная страница -->
     <div id="homePage">
-        <div class="tabs-container">
-            <div class="tab active" onclick="switchTab(this)">Главная</div>
-            <div class="tab" onclick="switchTab(this)">Подписки</div>
-            <div class="tab" onclick="switchTab(this)">Музыка</div>
-            <div class="tab" onclick="switchTab(this)">Сейчас в тренде</div>
+        <div class="tabs-container" id="mainTabs">
+            <div class="tab active" onclick="switchTab(this, 'home')">Главная</div>
+            <div class="tab" onclick="switchTab(this, 'subs')">Подписки</div>
+            <div class="tab" onclick="switchTab(this, 'music')">Музыка</div>
+            <div class="tab" onclick="switchTab(this, 'trending')">Сейчас в тренде</div>
         </div>
         <div class="video-grid" id="videoGrid"></div>
     </div>
@@ -142,7 +142,6 @@
         <div class="profile-section">
             <h2>История просмотров</h2>
             <div class="history-container" id="historyContainer">
-                <!-- Сюда будут загружаться просмотренные видео -->
                 <p style="color: var(--text-secondary); font-size: 14px;">Вы пока ничего не смотрели.</p>
             </div>
         </div>
@@ -150,9 +149,10 @@
         <div class="profile-section">
             <h2>Библиотека</h2>
             <div style="display: flex; gap: 10px;">
-                <div class="tab active" style="padding: 10px 20px;">Недавние</div>
+                <div class="tab active" style="padding: 10px 20px;" onclick="renderHistory()">Недавние</div>
                 <div class="tab" style="padding: 10px 20px;">Плейлисты</div>
             </div>
+            <div class="history-container" id="libraryContainer" style="margin-top: 15px;"></div>
         </div>
     </div>
 
@@ -172,6 +172,8 @@
                 <div class="video-actions">
                     <div class="action-btn" onclick="likeVideo('like')" id="likeBtn">👍 <span id="likeCount">0</span></div>
                     <div class="action-btn" onclick="likeVideo('dislike')" id="dislikeBtn">👎 <span id="dislikeCount">0</span></div>
+                    <!-- Кнопка Поделиться -->
+                    <div class="action-btn" onclick="shareVideo()" style="margin-left:auto;">🔗 Поделиться</div>
                 </div>
 
                 <div class="video-description">
@@ -193,7 +195,10 @@
         const API_URL = '';
         let currentVideoId = null;
         let allVideos = []; 
-        let historyIds = JSON.parse(localStorage.getItem('history') || '[]'); // Загружаем историю
+        let historyIds = JSON.parse(localStorage.getItem('history') || '[]');
+        
+        // Имитация подписок (сохраняем ID авторов в localStorage)
+        let subscribedAuthors = JSON.parse(localStorage.getItem('subs') || '[]');
 
         // --- Поиск ---
         function toggleSearch() {
@@ -210,11 +215,13 @@
 
         function filterVideos() {
             const query = document.getElementById('searchInput').value.toLowerCase();
+            if (!query) return renderVideos(allVideos);
+            
             const filtered = allVideos.filter(v => v.title.toLowerCase().includes(query));
             renderVideos(filtered);
         }
 
-        // --- Навигация и Профиль ---
+        // --- Навигация и Вкладки ---
         function showPage(page) {
             if (page === 'home') {
                 document.getElementById('homePage').style.display = 'block';
@@ -227,39 +234,63 @@
 
         function openProfile() {
             showPage('profile');
-            renderHistory(); // Обновляем историю при открытии профиля
+            renderHistory();
         }
 
-        function switchTab(element) {
-            document.querySelectorAll('.tabs-container .tab').forEach(t => t.classList.remove('active'));
+        function switchTab(element, tabType) {
+            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
             element.classList.add('active');
+
+            if (tabType === 'home') {
+                renderVideos(allVideos);
+            } else if (tabType === 'subs') {
+                // Фильтруем только по подписанным авторам
+                const subVideos = allVideos.filter(v => subscribedAuthors.includes(v.author_username));
+                if(subVideos.length === 0) {
+                    document.getElementById('videoGrid').innerHTML = '<p style="padding:20px; color:#aaa;">Вы еще не подписаны ни на кого. Подпишитесь на автора в его видео!</p>';
+                } else {
+                    renderVideos(subVideos);
+                }
+            } else if (tabType === 'music') {
+                // Имитация музыки: ищем слова в названии
+                const musicKeywords = ['music', 'song', 'музыка', 'песня', 'клип'];
+                const musicVideos = allVideos.filter(v => musicKeywords.some(kw => v.title.toLowerCase().includes(kw)));
+                if(musicVideos.length === 0) {
+                    document.getElementById('videoGrid').innerHTML = '<p style="padding:20px; color:#aaa;">Музыкальных видео не найдено.</p>';
+                } else {
+                    renderVideos(musicVideos);
+                }
+            } else if (tabType === 'trending') {
+                // Имитация трендов (сортируем по длине названия или просто рандомно)
+                const trendingVideos = [...allVideos].sort(() => 0.5 - Math.random());
+                renderVideos(trendingVideos);
+            }
         }
 
-        // --- История просмотров ---
+        // --- История и Библиотека ---
         function addToHistory(videoId) {
-            // Удаляем из истории, если уже там есть (чтобы переместить в начало)
             historyIds = historyIds.filter(id => id !== videoId);
-            // Добавляем в начало
             historyIds.unshift(videoId);
-            // Оставляем только последние 10 видео
             if (historyIds.length > 10) historyIds.pop();
-            
             localStorage.setItem('history', JSON.stringify(historyIds));
         }
 
         function renderHistory() {
             const container = document.getElementById('historyContainer');
+            const libContainer = document.getElementById('libraryContainer');
             container.innerHTML = '';
+            libContainer.innerHTML = '';
 
-            // Находим полные данные видео по сохраненным ID
             const historyVideos = historyIds.map(id => allVideos.find(v => v.id === id)).filter(v => v);
 
             if (historyVideos.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">Вы пока ничего не смотрели.</p>';
+                libContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">Нет недавних видео.</p>';
                 return;
             }
 
             historyVideos.forEach(video => {
+                // Карточка для истории в профиле
                 const card = document.createElement('div');
                 card.className = 'history-card';
                 card.innerHTML = `
@@ -269,6 +300,16 @@
                 `;
                 card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
                 container.appendChild(card);
+
+                // Дублируем в библиотеку (Недавние)
+                const libCard = document.createElement('div');
+                libCard.className = 'history-card';
+                libCard.innerHTML = `
+                    <div class="history-thumbnail"></div>
+                    <div class="history-title">${video.title}</div>
+                `;
+                libCard.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
+                libContainer.appendChild(libCard);
             });
         }
 
@@ -298,8 +339,10 @@
 
         function logout() {
             localStorage.removeItem('token');
-            localStorage.removeItem('history'); // Очищаем историю при выходе
+            localStorage.removeItem('history');
+            localStorage.removeItem('subs');
             historyIds = [];
+            subscribedAuthors = [];
             document.getElementById('authBlock').style.display = 'flex';
             document.getElementById('userInfo').style.display = 'none';
             showPage('home');
@@ -347,12 +390,22 @@
         // --- Просмотр видео ---
         async function openVideo(id, title, description, author) {
             currentVideoId = id;
-            addToHistory(id); // Сохраняем в историю!
+            addToHistory(id);
             
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalAuthor').innerText = `Автор: ${author || 'Неизвестен'}`;
             document.getElementById('modalDescription').innerText = description || 'Описание отсутствует.';
             document.getElementById('videoModal').style.display = 'block';
+            
+            // Кнопка подписки (визуальная)
+            const subBtn = document.getElementById('subscribeBtn');
+            if (subscribedAuthors.includes(author)) {
+                subBtn.innerText = 'Отписаться';
+                subBtn.style.background = '#333';
+            } else {
+                subBtn.innerText = 'Подписаться';
+                subBtn.style.background = '#ff0000';
+            }
             
             try {
                 const res = await fetch(`${API_URL}/videos/${id}/stream`);
@@ -376,6 +429,30 @@
         function closeModal() {
             document.getElementById('videoModal').style.display = 'none';
             document.getElementById('modalPlayer').innerHTML = ''; 
+        }
+
+        // Функция "Поделиться"
+        function shareVideo() {
+            const url = `${window.location.origin}/static/index.html?video=${currentVideoId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Ссылка на видео скопирована в буфер обмена!');
+            }).catch(() => {
+                alert('Ссылка: ' + url);
+            });
+        }
+
+        // Подписка на автора (визуальная)
+        function toggleSubscription(author) {
+            if (!author) return;
+            if (subscribedAuthors.includes(author)) {
+                subscribedAuthors = subscribedAuthors.filter(a => a !== author);
+                alert('Вы отписались от ' + author);
+            } else {
+                subscribedAuthors.push(author);
+                alert('Вы подписались на ' + author);
+            }
+            localStorage.setItem('subs', JSON.stringify(subscribedAuthors));
+            openVideo(currentVideoId, document.getElementById('modalTitle').innerText, document.getElementById('modalDescription').innerText, author);
         }
 
         // --- Комментарии ---
