@@ -2,103 +2,249 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTude Clone</title>
     <style>
-        body { background-color: #0f0f0f; color: white; font-family: 'Roboto', sans-serif; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .logo { font-size: 24px; font-weight: bold; display: flex; align-items: center; gap: 5px; cursor: pointer; color: white; text-decoration: none;}
-        .logo span { color: #ff0000; }
-        .login-form { display: flex; gap: 10px; }
-        input[type="email"], input[type="password"] { padding: 8px; background: #1f1f1f; border: 1px solid #333; color: white; border-radius: 4px; }
-        button { padding: 8px 16px; background: #ff0000; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #cc0000; }
-        button.secondary { background: #272727; color: white; }
-        button.secondary:hover { background: #3f3f3f; }
-        
-        /* Сетка видео */
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-        .video-card { cursor: pointer; }
-        .thumbnail { width: 100%; height: 170px; background: #222; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #555; }
-        .video-info { display: flex; gap: 10px; margin-top: 10px; }
-        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #555; flex-shrink: 0; }
-        .video-title { font-weight: 500; font-size: 16px; margin: 0; }
-        .author { color: #aaa; font-size: 14px; margin-top: 5px; }
+        :root {
+            --bg-color: #0f0f0f;
+            --text-color: #f1f1f1;
+            --text-secondary: #aaaaaa;
+            --border-color: #3f3f3f;
+            --hover-bg: #272727;
+            --accent-color: #ff0000;
+        }
 
-        /* Модальное окно (Плеер) */
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            font-family: 'Roboto', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+        }
+
+        /* --- Верхняя панель --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            z-index: 100;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .logo-icon {
+            color: var(--accent-color);
+            font-size: 24px;
+        }
+
+        .icons-area {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 20px;
+        }
+
+        /* --- Вкладки (Главная, Подписки...) --- */
+        .tabs-container {
+            display: flex;
+            gap: 12px;
+            padding: 0 16px 12px 16px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tabs-container::-webkit-scrollbar { display: none; } /* Скрываем скроллбар */
+
+        .tab {
+            background-color: var(--hover-bg);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .tab.active {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* --- Сетка видео --- */
+        .video-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+            gap: 16px; 
+            padding: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .video-grid { grid-template-columns: 1fr; gap: 20px; padding: 0; }
+            .video-card { border-radius: 0; }
+            .thumbnail { border-radius: 0; }
+            .video-info { padding: 0 16px; }
+        }
+
+        .video-card { 
+            cursor: pointer; 
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .thumbnail { 
+            width: 100%; 
+            aspect-ratio: 16 / 9; 
+            background: #222; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 40px; 
+            color: #555; 
+            position: relative;
+        }
+
+        .thumbnail::after {
+            content: '▶';
+            position: absolute;
+            opacity: 0.5;
+        }
+
+        .video-info { 
+            display: flex; 
+            gap: 12px; 
+            margin-top: 12px; 
+        }
+
+        .avatar { 
+            width: 36px; 
+            height: 36px; 
+            border-radius: 50%; 
+            background: #555; 
+            flex-shrink: 0; 
+        }
+
+        .video-details { flex-grow: 1; }
+        
+        .video-title { 
+            font-weight: 500; 
+            font-size: 16px; 
+            margin: 0; 
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .author { 
+            color: var(--text-secondary); 
+            font-size: 14px; 
+            margin-top: 4px; 
+        }
+
+        /* --- Модальное окно (Плеер) --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; }
-        .modal-content { background: #0f0f0f; max-width: 1100px; margin: 40px auto; padding: 20px; border-radius: 12px; position: relative; }
-        .close-btn { position: absolute; top: 10px; right: 20px; background: #333; font-size: 20px; padding: 5px 15px; border-radius: 50%; }
+        .modal-content { background: var(--bg-color); max-width: 1100px; margin: 40px auto; padding: 20px; border-radius: 12px; position: relative; }
+        .close-btn { position: absolute; top: 10px; right: 20px; background: var(--hover-bg); font-size: 20px; padding: 5px 15px; border-radius: 50%; color: white; border: none; cursor: pointer;}
         .player-area { width: 100%; height: 500px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; overflow: hidden; }
         
-        /* Заголовок и описание (как в ТЗ) */
         .video-header { margin-bottom: 20px; }
         .video-header h1 { font-size: 22px; margin: 0 0 10px 0; }
-        .video-description { background: #272727; padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; margin-top: 15px; }
-        .video-description b { display: block; margin-bottom: 5px; }
+        .video-description { background: var(--hover-bg); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; margin-top: 15px; }
         
-        /* Кнопки действий */
-        .video-actions { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; }
-        .action-btn { background: #272727; padding: 8px 16px; border-radius: 20px; font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;}
+        .video-actions { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
+        .action-btn { background: var(--hover-bg); padding: 8px 16px; border-radius: 20px; font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;}
         .action-btn:hover { background: #3f3f3f; }
-        .action-btn.active { color: #ff0000; }
 
-        /* Комментарии */
         .comments-section { margin-top: 20px; }
-        .comment-input { width: 100%; padding: 10px; background: #1f1f1f; border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; resize: vertical; }
+        .comment-input { width: 100%; padding: 10px; background: #1f1f1f; border: 1px solid var(--border-color); color: white; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; resize: vertical; }
         .comment { display: flex; gap: 10px; margin-bottom: 15px; }
-        .comment-body { background: #1f1f1f; padding: 10px; border-radius: 8px; width: 100%; }
+        .comment-body { background: var(--hover-bg); padding: 10px; border-radius: 8px; width: 100%; }
         .comment-author { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #ddd;}
+
+        /* --- Авторизация в шапке --- */
+        .auth-box { display: flex; gap: 10px; align-items: center; }
+        .auth-box input { padding: 6px; background: #1f1f1f; border: 1px solid var(--border-color); color: white; border-radius: 4px; width: 120px; font-size: 12px;}
+        .auth-box button { padding: 6px 12px; background: var(--accent-color); color: white; border: none; border-radius: 16px; cursor: pointer; font-weight: bold; font-size: 12px;}
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">▶ <span>YouTude</span></div>
-        <div id="authBlock" class="login-form">
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="password" placeholder="Пароль">
-            <button onclick="login()">Войти</button>
+    <!-- Верхняя панель -->
+    <div class="top-bar">
+        <div class="logo-area">
+            <span class="logo-icon">▶</span> YouTude
         </div>
-        <div id="userInfo" style="display:none;">
-            <span style="margin-right: 10px;">Вы вошли!</span>
-            <button class="secondary" onclick="logout()">Выйти</button>
+        
+        <div class="icons-area">
+            <!-- Авторизация -->
+            <div id="authBlock" class="auth-box">
+                <input type="email" id="email" placeholder="Email">
+                <input type="password" id="password" placeholder="Пароль">
+                <button onclick="login()">Войти</button>
+            </div>
+            <div id="userInfo" style="display:none;">
+                <span style="font-size: 14px; margin-right: 10px; color: var(--text-secondary);">Профиль</span>
+                <button onclick="logout()" style="background: var(--hover-bg); border-radius: 50%; padding: 5px 10px; border: none; color: white; cursor: pointer;">Выйти</button>
+            </div>
+            
+            <!-- Иконки -->
+            <span style="cursor:pointer;" title="Уведомления">🔔</span>
+            <span style="cursor:pointer;" title="Поиск">🔍</span>
         </div>
     </div>
 
-    <h2>Главная лента</h2>
+    <!-- Вкладки -->
+    <div class="tabs-container">
+        <div class="tab active">Главная</div>
+        <div class="tab">Подписки</div>
+        <div class="tab">Музыка</div>
+        <div class="tab">Сейчас в тренде</div>
+        <div class="tab">Игры</div>
+    </div>
+
+    <!-- Сетка видео -->
     <div class="video-grid" id="videoGrid"></div>
 
-    <!-- Модальное окно просмотра видео -->
+    <!-- Модальное окно -->
     <div class="modal" id="videoModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeModal()">X</button>
             
-            <!-- Плеер -->
             <div class="player-area" id="modalPlayer">
                 <span style="color:#888;">Загрузка видео...</span>
             </div>
             
-            <!-- Заголовок и описание -->
             <div class="video-header">
                 <h1 id="modalTitle">Название видео</h1>
                 <div class="author" id="modalAuthor">Автор</div>
                 
+                <div class="video-actions">
+                    <div class="action-btn" onclick="likeVideo('like')" id="likeBtn">👍 <span id="likeCount">0</span></div>
+                    <div class="action-btn" onclick="likeVideo('dislike')" id="dislikeBtn">👎 <span id="dislikeCount">0</span></div>
+                </div>
+
                 <div class="video-description">
                     <b>Описание</b>
                     <span id="modalDescription">Описание видео...</span>
                 </div>
             </div>
-            
-            <!-- Кнопки действий (Лайки/Дизлайки) -->
-            <div class="video-actions">
-                <div class="action-btn" onclick="likeVideo('like')" id="likeBtn">👍 <span id="likeCount">0</span></div>
-                <div class="action-btn" onclick="likeVideo('dislike')" id="dislikeBtn">👎 <span id="dislikeCount">0</span></div>
-            </div>
 
-            <!-- Комментарии -->
             <div class="comments-section">
                 <h3>Комментарии <span id="commentCount">0</span></h3>
                 <textarea id="newComment" class="comment-input" rows="2" placeholder="Написать комментарий..."></textarea>
-                <button onclick="addComment()" style="margin-bottom: 20px;">Отправить</button>
+                <button onclick="addComment()" style="margin-bottom: 20px; padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Отправить</button>
                 <div id="commentsList"></div>
             </div>
         </div>
@@ -126,7 +272,7 @@
                 const data = await res.json();
                 localStorage.setItem('token', data.access_token);
                 document.getElementById('authBlock').style.display = 'none';
-                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('userInfo').style.display = 'flex';
                 alert('Успешный вход!');
             } else {
                 alert('Ошибка входа. Проверьте логин/пароль.');
@@ -149,7 +295,7 @@
                 grid.innerHTML = '';
                 
                 if (!videos || videos.length === 0) {
-                    grid.innerHTML = '<p>Видео пока нет.</p>';
+                    grid.innerHTML = '<p style="padding: 20px;">Видео пока нет.</p>';
                     return;
                 }
 
@@ -157,16 +303,16 @@
                     const card = document.createElement('div');
                     card.className = 'video-card';
                     card.innerHTML = `
-                        <div class="thumbnail">▶</div>
+                        <div class="thumbnail"></div>
                         <div class="video-info">
                             <div class="avatar"></div>
-                            <div>
+                            <div class="video-details">
                                 <h3 class="video-title">${video.title}</h3>
                                 <div class="author">${video.author_username || 'Автор'}</div>
+                                <div class="author" style="font-size: 12px;">1 млн просмотров • 1 день назад</div>
                             </div>
                         </div>
                     `;
-                    // Передаем title и описание (если есть) в модалку
                     card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
                     grid.appendChild(card);
                 });
@@ -184,54 +330,42 @@
             document.getElementById('videoModal').style.display = 'block';
             document.getElementById('commentsList').innerHTML = '<p>Загрузка комментариев...</p>';
             
-            // Сбрасываем счетчики
-            document.getElementById('likeCount').innerText = '0';
-            document.getElementById('dislikeCount').innerText = '0';
+            document.getElementById('likeCount').innerText = '124';
+            document.getElementById('dislikeCount').innerText = '3';
             
-            // 1. Получаем ссылку на видео (stream)
             try {
                 const res = await fetch(`${API_URL}/videos/${id}/stream`);
                 if (res.ok) {
                     const data = await res.json();
-                    // Браузеры могут не поддерживать некоторые форматы, но тег video мы вставим
                     document.getElementById('modalPlayer').innerHTML = `
                         <video controls style="width:100%; height:100%;" autoplay>
                             <source src="${data.url || data.stream_url}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
                         </video>
                     `;
                 } else {
-                    document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Видео недоступно (возможно, формат не mp4 или скрыто модератором)</span>`;
+                    document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Видео недоступно</span>`;
                 }
             } catch (e) {
                 document.getElementById('modalPlayer').innerHTML = `<span style="color:red">Ошибка загрузки видео</span>`;
             }
 
-            // 2. Загружаем комментарии
             loadComments(id);
-            
-            // 3. Заглушка для лайков (так как бэкенд не отдает их в списке)
-            document.getElementById('likeCount').innerText = '124';
-            document.getElementById('dislikeCount').innerText = '3';
         }
 
         function closeModal() {
             document.getElementById('videoModal').style.display = 'none';
-            document.getElementById('modalPlayer').innerHTML = ''; // Останавливаем плеер
+            document.getElementById('modalPlayer').innerHTML = ''; 
         }
 
-        // --- Комментарии (Live-обновление) ---
+        // --- Комментарии ---
         async function loadComments(videoId) {
             try {
                 const res = await fetch(`${API_URL}/videos/${videoId}/comments`);
                 const data = await res.json();
                 
-                // Адаптируемся под формат бэкенда (массив или объект)
                 const comments = Array.isArray(data) ? data : (data.comments || data.items || []);
-                
                 const list = document.getElementById('commentsList');
                 list.innerHTML = '';
-                
                 document.getElementById('commentCount').innerText = comments.length;
 
                 if (comments.length === 0) {
@@ -273,19 +407,17 @@
 
             if (res.ok) {
                 document.getElementById('newComment').value = '';
-                // Live-обновление: сразу перезапрашиваем список, чтобы новый коммент появился
                 loadComments(currentVideoId); 
             } else {
                 alert('Ошибка отправки комментария');
             }
         }
 
-        // --- Лайки и Дизлайки ---
+        // --- Лайки ---
         async function likeVideo(type) {
             const token = localStorage.getItem('token');
             if (!token) return alert('Войдите, чтобы оценить видео!');
 
-            // Бэкенд Cline поддерживает только лайки через POST /videos/{id}/like
             if (type === 'like') {
                 const res = await fetch(`${API_URL}/videos/${currentVideoId}/like`, {
                     method: 'POST',
@@ -297,7 +429,6 @@
                     count.innerText = parseInt(count.innerText) + 1;
                 }
             } else {
-                // Дизлайки бэкенд пока не поддерживает, делаем визуальную имитацию
                 const count = document.getElementById('dislikeCount');
                 count.innerText = parseInt(count.innerText) + 1;
             }
@@ -306,7 +437,7 @@
         // Инициализация
         if (localStorage.getItem('token')) {
             document.getElementById('authBlock').style.display = 'none';
-            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'flex';
         }
         loadVideos();
     </script>
