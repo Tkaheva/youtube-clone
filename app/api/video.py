@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_async_session
 from app.core.config import settings
-from app.core.s3 import ensure_bucket_exists, upload_fileobj
+from app.core.s3 import ensure_bucket_exists, get_presigned_url, upload_fileobj
 from app.models.user import User
 from app.models.video import Video, VideoStatus, VideoVisibility
 from app.schemas.video import VideoListResponse, VideoResponse, VideoUpload
@@ -120,3 +120,42 @@ async def list_videos(
         )
         for video, username in rows
     ]
+
+
+@router.get(
+    "/{video_id}/stream",
+    summary="Получить presigned URL для просмотра видео",
+)
+async def stream_video(
+    video_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict:
+    """Вернуть presigned URL для скачивания/просмотра видео из S3.
+
+    Доступно для видео со статусом ``ready`` и visibility ``public``.
+    """
+    result = await session.execute(select(Video).where(Video.id == video_id))
+    video = result.scalar_one_or_none()
+    if video is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Video not found"
+        )
+
+    if video.visibility != VideoVisibility.public:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Video is not public",
+        )
+
+    if video.status != VideoStatus.ready:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Video is not ready for streaming",
+        )
+
+    presigned_url = await get_presigned_url(
+        bucket=settings.S3_BUCKET,
+        key=video.original_s3_key,
+        expiration=3600,
+    )
+    return {"url": presigned_url, "expires_in": 3600}

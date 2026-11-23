@@ -306,3 +306,65 @@ async def test_list_comments_nonexistent_video(client: AsyncClient):
         "/videos/00000000-0000-0000-0000-000000000000/comments"
     )
     assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_stream_video_public_ready(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session,
+        "streamer@example.com",
+        "streamer",
+        "Streamable Video",
+        status=VideoStatus.ready,
+        visibility=VideoVisibility.public,
+    )
+
+    with patch(
+        "app.api.video.get_presigned_url",
+        new=AsyncMock(return_value="https://minio.example.com/presigned-url"),
+    ) as mock_presigned:
+        resp = await client.get(f"/videos/{video.id}/stream")
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert "url" in body
+    assert body["expires_in"] == 3600
+    mock_presigned.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_stream_video_not_ready(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session,
+        "streamer2@example.com",
+        "streamer2",
+        "Not Ready Video",
+        status=VideoStatus.draft,
+        visibility=VideoVisibility.public,
+    )
+
+    resp = await client.get(f"/videos/{video.id}/stream")
+    assert resp.status_code == 403, resp.text
+
+
+@pytest.mark.asyncio
+async def test_stream_video_not_public(async_session, client: AsyncClient):
+    user, video = await _create_user_and_video(
+        async_session,
+        "streamer3@example.com",
+        "streamer3",
+        "Private Video",
+        status=VideoStatus.ready,
+        visibility=VideoVisibility.private,
+    )
+
+    resp = await client.get(f"/videos/{video.id}/stream")
+    assert resp.status_code == 403, resp.text
+
+
+@pytest.mark.asyncio
+async def test_stream_video_nonexistent(client: AsyncClient):
+    resp = await client.get(
+        "/videos/00000000-0000-0000-0000-000000000000/stream"
+    )
+    assert resp.status_code == 404, resp.text

@@ -84,3 +84,24 @@ async def delete_file(bucket: str, key: str) -> None:
         client.delete_object(Bucket=bucket, Key=key)
 
     await loop.run_in_executor(None, _delete)
+
+
+async def get_presigned_url(
+    bucket: str,
+    key: str,
+    expiration: int = 3600,
+    http_method: str = "GET",
+) -> str:
+    """Сгенерировать presigned URL для доступа к объекту в S3."""
+    client = get_s3_client()
+    loop = asyncio.get_event_loop()
+
+    def _generate() -> str:
+        return client.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=expiration,
+            HttpMethod=http_method,
+        )
+
+    return await loop.run_in_executor(None, _generate)
