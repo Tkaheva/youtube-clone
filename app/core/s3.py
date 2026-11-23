@@ -92,7 +92,11 @@ async def get_presigned_url(
     expiration: int = 3600,
     http_method: str = "GET",
 ) -> str:
-    """Сгенерировать presigned URL для доступа к объекту в S3."""
+    """Сгенерировать presigned URL для доступа к объекту в S3.
+    
+    По умолчанию использует endpoint_url из настроек (http://localhost:9000),
+    что обеспечивает доступ к файлам из браузера по адресу http://localhost:9000/bucket/key.
+    """
     client = get_s3_client()
     loop = asyncio.get_event_loop()
 
