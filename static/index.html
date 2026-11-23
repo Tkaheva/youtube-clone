@@ -53,6 +53,13 @@
         .profile-btn { background: var(--text-color); color: var(--bg-color); padding: 10px 20px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; width: 100%; font-size: 16px; margin-bottom: 20px;}
         .profile-section { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;}
         .profile-section h2 { font-size: 20px; margin-bottom: 15px; }
+        
+        /* История просмотров */
+        .history-container { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
+        .history-card { min-width: 220px; cursor: pointer; }
+        .history-thumbnail { width: 220px; height: 124px; background: #333; border-radius: 8px; position: relative; }
+        .history-title { font-size: 14px; margin-top: 8px; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .history-author { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
         /* --- Модальное окно --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; }
@@ -72,8 +79,6 @@
         .comment { display: flex; gap: 10px; margin-bottom: 15px; position: relative; padding-right: 60px; }
         .comment-body { background: var(--hover-bg); padding: 10px; border-radius: 8px; width: 100%; }
         .comment-author { font-weight: bold; font-size: 14px; margin-bottom: 5px; color: #ddd;}
-        
-        /* Кнопки управления комментом */
         .comment-controls { position: absolute; right: 0; top: 5px; display: flex; gap: 5px; opacity: 0; transition: opacity 0.2s; }
         .comment:hover .comment-controls { opacity: 1; }
         .comment-controls button { background: var(--hover-bg); border: none; color: var(--text-secondary); cursor: pointer; padding: 5px; border-radius: 4px; font-size: 12px;}
@@ -104,7 +109,7 @@
                 <button onclick="login()">Войти</button>
             </div>
             <div id="userInfo" style="display:none;">
-                <div id="avatarBtn" onclick="showPage('profile')" style="width: 32px; height: 32px; border-radius: 50%; background: var(--profile-color); display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: white;">А</div>
+                <div id="avatarBtn" onclick="openProfile()" style="width: 32px; height: 32px; border-radius: 50%; background: var(--profile-color); display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: white;">А</div>
                 <button onclick="logout()" style="background: var(--hover-bg); border-radius: 50%; padding: 5px 10px; border: none; color: white; cursor: pointer; margin-left: 10px;">Выйти</button>
             </div>
             <span id="notifyIcon" style="cursor:pointer;" title="Уведомления" onclick="alert('У вас 0 новых уведомлений!')">🔔</span>
@@ -135,9 +140,17 @@
         <button class="profile-btn" onclick="alert('Функция создания канала в разработке!')">Создать канал</button>
         
         <div class="profile-section">
+            <h2>История просмотров</h2>
+            <div class="history-container" id="historyContainer">
+                <!-- Сюда будут загружаться просмотренные видео -->
+                <p style="color: var(--text-secondary); font-size: 14px;">Вы пока ничего не смотрели.</p>
+            </div>
+        </div>
+
+        <div class="profile-section">
             <h2>Библиотека</h2>
             <div style="display: flex; gap: 10px;">
-                <div class="tab" style="padding: 10px 20px;">Недавние</div>
+                <div class="tab active" style="padding: 10px 20px;">Недавние</div>
                 <div class="tab" style="padding: 10px 20px;">Плейлисты</div>
             </div>
         </div>
@@ -179,7 +192,8 @@
     <script>
         const API_URL = '';
         let currentVideoId = null;
-        let allVideos = []; // Храним все видео для поиска
+        let allVideos = []; 
+        let historyIds = JSON.parse(localStorage.getItem('history') || '[]'); // Загружаем историю
 
         // --- Поиск ---
         function toggleSearch() {
@@ -190,7 +204,7 @@
             } else {
                 container.style.display = 'none';
                 document.getElementById('searchInput').value = '';
-                renderVideos(allVideos); // Сброс фильтра
+                renderVideos(allVideos);
             }
         }
 
@@ -200,7 +214,7 @@
             renderVideos(filtered);
         }
 
-        // --- Навигация ---
+        // --- Навигация и Профиль ---
         function showPage(page) {
             if (page === 'home') {
                 document.getElementById('homePage').style.display = 'block';
@@ -211,10 +225,51 @@
             }
         }
 
+        function openProfile() {
+            showPage('profile');
+            renderHistory(); // Обновляем историю при открытии профиля
+        }
+
         function switchTab(element) {
             document.querySelectorAll('.tabs-container .tab').forEach(t => t.classList.remove('active'));
             element.classList.add('active');
-            // Просто визуальный эффект, лента не меняется
+        }
+
+        // --- История просмотров ---
+        function addToHistory(videoId) {
+            // Удаляем из истории, если уже там есть (чтобы переместить в начало)
+            historyIds = historyIds.filter(id => id !== videoId);
+            // Добавляем в начало
+            historyIds.unshift(videoId);
+            // Оставляем только последние 10 видео
+            if (historyIds.length > 10) historyIds.pop();
+            
+            localStorage.setItem('history', JSON.stringify(historyIds));
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = '';
+
+            // Находим полные данные видео по сохраненным ID
+            const historyVideos = historyIds.map(id => allVideos.find(v => v.id === id)).filter(v => v);
+
+            if (historyVideos.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">Вы пока ничего не смотрели.</p>';
+                return;
+            }
+
+            historyVideos.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'history-card';
+                card.innerHTML = `
+                    <div class="history-thumbnail"></div>
+                    <div class="history-title">${video.title}</div>
+                    <div class="history-author">${video.author_username || 'Автор'}</div>
+                `;
+                card.onclick = () => openVideo(video.id, video.title, video.description, video.author_username);
+                container.appendChild(card);
+            });
         }
 
         // --- Авторизация ---
@@ -243,6 +298,8 @@
 
         function logout() {
             localStorage.removeItem('token');
+            localStorage.removeItem('history'); // Очищаем историю при выходе
+            historyIds = [];
             document.getElementById('authBlock').style.display = 'flex';
             document.getElementById('userInfo').style.display = 'none';
             showPage('home');
@@ -279,7 +336,6 @@
                         <div class="video-details">
                             <h3 class="video-title">${video.title}</h3>
                             <div class="author">${video.author_username || 'Автор'}</div>
-                            <div class="author" style="font-size: 12px;">1 млн просмотров • 1 день назад</div>
                         </div>
                     </div>
                 `;
@@ -291,6 +347,8 @@
         // --- Просмотр видео ---
         async function openVideo(id, title, description, author) {
             currentVideoId = id;
+            addToHistory(id); // Сохраняем в историю!
+            
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalAuthor').innerText = `Автор: ${author || 'Неизвестен'}`;
             document.getElementById('modalDescription').innerText = description || 'Описание отсутствует.';
@@ -320,8 +378,8 @@
             document.getElementById('modalPlayer').innerHTML = ''; 
         }
 
-        // --- Комментарии (с визуальным удалением/редактированием) ---
-        let localComments = []; // Локальное хранилище для имитации
+        // --- Комментарии ---
+        let localComments = []; 
 
         async function loadComments(videoId) {
             try {
@@ -346,7 +404,6 @@
             }
 
             localComments.forEach((c, index) => {
-                // Кнопки управления видны, только если пользователь авторизован
                 const controls = token ? `
                     <div class="comment-controls">
                         <button onclick="editComment(${index})" title="Редактировать">✏️</button>
@@ -388,7 +445,6 @@
             }
         }
 
-        // Визуальное удаление
         function deleteComment(index) {
             if (confirm('Удалить этот комментарий?')) {
                 localComments.splice(index, 1);
@@ -396,7 +452,6 @@
             }
         }
 
-        // Визуальное редактирование
         function editComment(index) {
             const textDiv = document.getElementById(`comment-text-${index}`);
             const currentText = textDiv.innerText;
@@ -404,7 +459,7 @@
             
             if (newText !== null && newText.trim() !== '') {
                 textDiv.innerText = newText;
-                localComments[index].content = newText; // Обновляем локально
+                localComments[index].content = newText;
             }
         }
 
