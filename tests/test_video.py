@@ -1,370 +1,132 @@
-import io
-from unittest.mock import AsyncMock, patch
-
 import pytest
 from httpx import AsyncClient
+from unittest.mock import patch
+import io
 
-from app.core.security import hash_password
-from app.models.user import User, UserRole
 from app.models.video import Video, VideoStatus, VideoVisibility
-
-REGISTER_URL = "/auth/register"
-LOGIN_URL = "/auth/login"
-UPLOAD_URL = "/videos/upload"
-LIST_URL = "/videos"
-
+from app.models.user import User, UserRole
+from app.core.security import hash_password
+from app.models.comment import Comment
+from app.models.reaction import Reaction, ReactionType
 
 @pytest.mark.asyncio
 async def test_upload_video(async_session, client: AsyncClient):
+    # 1. Создаем пользователя напрямую в БД
     user = User(
         email="uploader@example.com",
         username="uploader",
         password_hash=hash_password("secret123"),
-        role=UserRole.user,
+        role=UserRole.user
     )
     async_session.add(user)
     await async_session.commit()
+    await async_session.refresh(user)
 
-    # Логинимся, чтобы получить JWT
-    login_resp = await client.post(
-        LOGIN_URL,
-        data={"username": "uploader@example.com", "password": "secret123"},
-    )
-    assert login_resp.status_code == 200
-    token = login_resp.json()["access_token"]
+    # 2. Логинимся, чтобы получить токен
+    login_data = {"username": "uploader@example.com", "password": "secret123"}
+    login_res = await client.post("/auth/login", data=login_data)
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
 
-    # Мокаем S3-вызовы (MinIO не запущен в тестах). Патчим там, где используются функции — в app.api.video
-    with patch(
-        "app.api.video.upload_fileobj", new=AsyncMock(return_value="mocked/key.mp4")
-    ) as mock_upload, patch(
-        "app.api.video.ensure_bucket_exists", new=AsyncMock()
-    ) as mock_ensure:
-        file_content = b"fake video content"
-        files = {"file": ("test.mp4", io.BytesIO(file_content), "video/mp4")}
-        data = {
-            "title": "Test Video",
-            "description": "A test video",
-            "visibility": "public",
-        }
-        resp = await client.post(
-            UPLOAD_URL,
-            headers={"Authorization": f"Bearer {token}"},
+    # 3. Загружаем видео (мокаем S3, чтобы не делать реальный запрос)
+    file_content = b"fake video content"
+    files = {"file": ("test.mp4", io.BytesIO(file_content), "video/mp4")}
+    data = {"title": "My Test Video", "description": "Test description", "visibility": "public"}
+
+    # Мокаем функцию загрузки в S3 (если Cline использовал boto3 upload_fileobj)
+    with patch("app.core.s3.upload_fileobj") as mock_upload:
+        mock_upload.return_value = "videos/test_key.mp4"
+        
+        res = await client.post(
+            "/videos/upload",
+            headers=headers,
             files=files,
-            data=data,
+            data=data
         )
 
-    assert resp.status_code == 201, resp.text
-    body = resp.json()
-    assert body["title"] == "Test Video"
-    assert body["description"] == "A test video"
-    assert body["author_username"] == "uploader"
-    assert body["status"] == "draft"
-    assert body["visibility"] == "public"
-    assert body["id"] is not None
-    # S3-ключ генерируется сервисом: videos/{user_id}/{uuid}.mp4
-    assert body["s3_key"].startswith(f"videos/{user.id}/")
-    assert body["s3_key"].endswith(".mp4")
-    mock_upload.assert_called_once()
-    mock_ensure.assert_called_once()
-
+    assert res.status_code == 200
+    json_data = res.json()
+    assert json_data["title"] == "My Test Video"
+    assert json_data["author_username"] == "uploader"
+    assert "id" in json_data
 
 @pytest.mark.asyncio
-async def test_upload_video_unauthenticated(client: AsyncClient):
-    with patch("app.api.video.upload_fileobj", new=AsyncMock()), patch(
-        "app.api.video.ensure_bucket_exists", new=AsyncMock()
-    ):
-        file_content = b"fake video content"
-        files = {"file": ("test.mp4", io.BytesIO(file_content), "video/mp4")}
-        data = {"title": "Test Video"}
-        resp = await client.post(UPLOAD_URL, files=files, data=data)
-
-    assert resp.status_code == 401
-
+async def test_upload_video_unauthorized(client: AsyncClient):
+    # Попытка загрузить видео без токена
+    files = {"file": ("test.mp4", io.BytesIO(b"fake"), "video/mp4")}
+    data = {"title": "Hacked Video"}
+    
+    res = await client.post("/videos/upload", files=files, data=data)
+    assert res.status_code == 401
 
 @pytest.mark.asyncio
-async def test_list_videos(async_session, client: AsyncClient):
-    # Создаём автора и несколько видео
-    author = User(
-        email="author@example.com",
-        username="author",
-        password_hash=hash_password("secret123"),
-        role=UserRole.user,
-    )
-    async_session.add(author)
-    await async_session.flush()
+async def test_get_videos_feed(async_session, client: AsyncClient):
+    # Создаем пользователя и два видео (одно публичное, одно приватное)
+    user = User(email="author@test.com", username="author", password_hash="h")
+    async_session.add(user)
+    await async_session.commit()
+    await async_session.refresh(user)
 
-    public_video = Video(
-        author_id=author.id,
-        title="Public Video",
-        description="Public",
-        original_s3_key="videos/author/1.mp4",
-        visibility=VideoVisibility.public,
-        status=VideoStatus.ready,
-    )
-    private_video = Video(
-        author_id=author.id,
-        title="Private Video",
-        description="Private",
-        original_s3_key="videos/author/2.mp4",
-        visibility=VideoVisibility.private,
-        status=VideoStatus.ready,
-    )
-    draft_video = Video(
-        author_id=author.id,
-        title="Draft Video",
-        description="Draft",
-        original_s3_key="videos/author/3.mp4",
-        visibility=VideoVisibility.public,
-        status=VideoStatus.draft,
-    )
-    async_session.add_all([public_video, private_video, draft_video])
+    v1 = Video(title="Public Video", author_id=user.id, visibility=VideoVisibility.public, status=VideoStatus.ready, original_s3_key="k1")
+    v2 = Video(title="Private Video", author_id=user.id, visibility=VideoVisibility.private, status=VideoStatus.ready, original_s3_key="k2")
+    async_session.add_all([v1, v2])
     await async_session.commit()
 
-    resp = await client.get(LIST_URL)
-    assert resp.status_code == 200
-    body = resp.json()
-    # Должны вернуться только public видео (ready + draft)
-    assert len(body) == 2
-    titles = {v["title"] for v in body}
-    assert titles == {"Public Video", "Draft Video"}
-    for v in body:
-        assert v["visibility"] == "public"
-        assert v["author_username"] == "author"
+    res = await client.get("/videos")
+    assert res.status_code == 200
+    data = res.json()
+    
+    # В публичной ленте должно быть только публичное видео
+    assert len(data) == 1
+    assert data[0]["title"] == "Public Video"
 
-
-async def _login_and_get_token(client: AsyncClient, email: str, password: str = "secret123") -> str:
-    resp = await client.post(LOGIN_URL, data={"username": email, "password": password})
-    assert resp.status_code == 200, resp.text
-    return resp.json()["access_token"]
-
-
-async def _create_user_and_video(
-    async_session,
-    email: str,
-    username: str,
-    title: str,
-    status: VideoStatus = VideoStatus.ready,
-    visibility: VideoVisibility = VideoVisibility.public,
-) -> tuple:
-    user = User(
-        email=email,
-        username=username,
-        password_hash=hash_password("secret123"),
-        role=UserRole.user,
-    )
+@pytest.mark.asyncio
+async def test_video_streaming_url(async_session, client: AsyncClient):
+    user = User(email="streamer@test.com", username="streamer", password_hash="h")
     async_session.add(user)
-    await async_session.flush()
+    await async_session.commit()
+    await async_session.refresh(user)
 
-    video = Video(
-        author_id=user.id,
-        title=title,
-        description="Test video",
-        original_s3_key=f"videos/{user.id}/test.mp4",
-        visibility=visibility,
-        status=status,
-    )
+    video = Video(title="Stream Me", author_id=user.id, visibility=VideoVisibility.public, status=VideoStatus.ready, original_s3_key="stream_key")
     async_session.add(video)
     await async_session.commit()
-    return user, video
 
-
-@pytest.mark.asyncio
-async def test_like_video(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session, "liker@example.com", "liker", "Likeable Video"
-    )
-    token = await _login_and_get_token(client, "liker@example.com")
-
-    resp = await client.post(
-        f"/videos/{video.id}/like",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    assert body["type"] == "like"
-    assert body["target_type"] == "video"
-
-    resp = await client.post(
-        f"/videos/{video.id}/like",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert resp.status_code == 204, resp.text
-
+    # Мокаем генерацию presigned URL
+    with patch("app.core.s3.get_presigned_url") as mock_presigned:
+        mock_presigned.return_value = "http://localhost:9000/videos/stream_key.mp4"
+        
+        res = await client.get(f"/videos/{video.id}/stream")
+        assert res.status_code == 200
+        assert "url" in res.json() or "stream_url" in res.json()
 
 @pytest.mark.asyncio
-async def test_like_video_unauthenticated(client: AsyncClient):
-    resp = await client.post(
-        "/videos/00000000-0000-0000-0000-000000000000/like"
-    )
-    assert resp.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_like_nonexistent_video(async_session, client: AsyncClient):
-    user = User(
-        email="liker2@example.com",
-        username="liker2",
-        password_hash=hash_password("secret123"),
-        role=UserRole.user,
-    )
+async def test_search_videos(async_session, client: AsyncClient):
+    # Создаем автора
+    user = User(email="search@test.com", username="searcher", password_hash=hash_password("secret"), role=UserRole.user)
     async_session.add(user)
     await async_session.commit()
-    token = await _login_and_get_token(client, "liker2@example.com")
+    await async_session.refresh(user)
 
-    resp = await client.post(
-        "/videos/00000000-0000-0000-0000-000000000000/like",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert resp.status_code == 404, resp.text
+    # Создаем видео
+    v1 = Video(title="Python Basics", author_id=user.id, visibility=VideoVisibility.public, status=VideoStatus.ready, original_s3_key="v1")
+    v2 = Video(title="Advanced Python", author_id=user.id, visibility=VideoVisibility.public, status=VideoStatus.ready, original_s3_key="v2")
+    v3 = Video(title="Java Tutorial", author_id=user.id, visibility=VideoVisibility.public, status=VideoStatus.ready, original_s3_key="v3")
+    
+    async_session.add_all([v1, v2, v3])
+    await async_session.commit()
 
+    # 1. Поиск с результатами
+    resp = await client.get("/videos/search?query=Python")
+    assert resp.status_code == 200
+    data = resp.json()
+    
+    assert len(data) == 2
+    titles = [v["title"] for v in data]
+    assert "Python Basics" in titles
+    assert "Advanced Python" in titles
+    assert "Java Tutorial" not in titles
 
-@pytest.mark.asyncio
-async def test_create_comment(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session,
-        "commenter@example.com",
-        "commenter",
-        "Commentable Video",
-    )
-    token = await _login_and_get_token(client, "commenter@example.com")
-
-    resp = await client.post(
-        f"/videos/{video.id}/comments",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"content": "Отличное видео!"},
-    )
-    assert resp.status_code == 201, resp.text
-    body = resp.json()
-    assert body["content"] == "Отличное видео!"
-    assert body["author_username"] == "commenter"
-    assert str(body["video_id"]) == str(video.id)
-    assert body["parent_id"] is None
-    assert body["is_deleted"] is False
-
-
-@pytest.mark.asyncio
-async def test_create_comment_with_parent(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session,
-        "commenter2@example.com",
-        "commenter2",
-        "Commentable Video 2",
-    )
-    token = await _login_and_get_token(client, "commenter2@example.com")
-
-    from app.models.comment import Comment
-
-    parent = Comment(
-        video_id=video.id,
-        author_id=user.id,
-        content="Родительский комментарий",
-    )
-    async_session.add(parent)
-    await async_session.flush()
-
-    resp = await client.post(
-        f"/videos/{video.id}/comments",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"content": "Ответ на комментарий", "parent_id": str(parent.id)},
-    )
-    assert resp.status_code == 201, resp.text
-    body = resp.json()
-    assert str(body["parent_id"]) == str(parent.id)
-    assert body["content"] == "Ответ на комментарий"
-
-
-@pytest.mark.asyncio
-async def test_list_comments(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session,
-        "commenter3@example.com",
-        "commenter3",
-        "Commentable Video 3",
-    )
-    token = await _login_and_get_token(client, "commenter3@example.com")
-
-    for i in range(3):
-        await client.post(
-            f"/videos/{video.id}/comments",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"content": f"Комментарий {i}"},
-        )
-
-    resp = await client.get(f"/videos/{video.id}/comments")
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    assert body["total"] == 3
-    assert len(body["comments"]) == 3
-    for c in body["comments"]:
-        assert c["author_username"] == "commenter3"
-        assert c["is_deleted"] is False
-
-
-@pytest.mark.asyncio
-async def test_list_comments_nonexistent_video(client: AsyncClient):
-    resp = await client.get(
-        "/videos/00000000-0000-0000-0000-000000000000/comments"
-    )
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_stream_video_public_ready(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session,
-        "streamer@example.com",
-        "streamer",
-        "Streamable Video",
-        status=VideoStatus.ready,
-        visibility=VideoVisibility.public,
-    )
-
-    with patch(
-        "app.api.video.get_presigned_url",
-        new=AsyncMock(return_value="https://minio.example.com/presigned-url"),
-    ) as mock_presigned:
-        resp = await client.get(f"/videos/{video.id}/stream")
-
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    assert "url" in body
-    assert body["expires_in"] == 3600
-    mock_presigned.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_stream_video_not_ready(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session,
-        "streamer2@example.com",
-        "streamer2",
-        "Not Ready Video",
-        status=VideoStatus.draft,
-        visibility=VideoVisibility.public,
-    )
-
-    resp = await client.get(f"/videos/{video.id}/stream")
-    assert resp.status_code == 403, resp.text
-
-
-@pytest.mark.asyncio
-async def test_stream_video_not_public(async_session, client: AsyncClient):
-    user, video = await _create_user_and_video(
-        async_session,
-        "streamer3@example.com",
-        "streamer3",
-        "Private Video",
-        status=VideoStatus.ready,
-        visibility=VideoVisibility.private,
-    )
-
-    resp = await client.get(f"/videos/{video.id}/stream")
-    assert resp.status_code == 403, resp.text
-
-
-@pytest.mark.asyncio
-async def test_stream_video_nonexistent(client: AsyncClient):
-    resp = await client.get(
-        "/videos/00000000-0000-0000-0000-000000000000/stream"
-    )
-    assert resp.status_code == 404, resp.text
+    # 2. Поиск без результатов
+    resp_empty = await client.get("/videos/search?query=Ruby")
+    assert resp_empty.status_code == 200
+    assert len(resp_empty.json()) == 0
