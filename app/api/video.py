@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -102,6 +102,43 @@ async def list_videos(
         .order_by(Video.created_at.desc())
         .offset(skip)
         .limit(limit)
+    )
+    rows = result.all()
+
+    return [
+        VideoListResponse(
+            id=video.id,
+            title=video.title,
+            description=video.description,
+            s3_key=video.original_s3_key,
+            thumbnail_s3_key=video.thumbnail_s3_key,
+            status=video.status,
+            visibility=video.visibility,
+            author_id=video.author_id,
+            author_username=username,
+            created_at=video.created_at,
+        )
+        for video, username in rows
+    ]
+
+
+@router.get(
+    "/search",
+    response_model=List[VideoListResponse],
+    summary="Поиск видео по названию",
+)
+async def search_videos(
+    query: str = Query(..., min_length=1, description="Поисковый запрос"),
+    session: AsyncSession = Depends(get_async_session),
+) -> List[VideoListResponse]:
+    """Ищет видео по названию (без учета регистра)."""
+    result = await session.execute(
+        select(Video, User.username)
+        .join(User, Video.author_id == User.id)
+        .where(Video.title.ilike(f"%{query}%"))
+        .where(Video.visibility == VideoVisibility.public)
+        .where(Video.status.in_([VideoStatus.ready, VideoStatus.draft]))
+        .order_by(Video.created_at.desc())
     )
     rows = result.all()
 
